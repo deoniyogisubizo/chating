@@ -28,6 +28,10 @@ export default function App() {
   // Storage fallback mode
   const [dbMode, setDbMode] = useState<'MongoDB Atlas' | 'Local JSON Vault'>('Local JSON Vault');
 
+  // Private chat state
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [activeUsers, setActiveUsers] = useState<Array<{ username: string; connectedAt: number }>>([]);
+
   // Multi-user Socket reference
   const socketRef = useRef<Socket | null>(null);
 
@@ -162,8 +166,20 @@ export default function App() {
       console.log("Terminal socket channel opened successfully.");
       socket.emit('joinRoom', {
         username: anonymousName,
-        roomId: activeRoomId
+        roomId: activeRoomId,
+        codename: realName,
+        passcode: '0000'
       });
+    });
+
+    // Listen for active users list
+    socket.on('activeUsers', (users: Array<{ username: string; connectedAt: number }>) => {
+      setActiveUsers(users);
+    });
+
+    // Listen for private room invitations from others
+    socket.on('privateRoomJoined', ({ roomId, from }: { roomId: string; from: string }) => {
+      // Refresh active users when someone initiates a private chat
     });
 
     // Handle instant real-time message stream
@@ -256,21 +272,59 @@ export default function App() {
   };
 
   const handleSelectRoom = (roomId: string) => {
+    setSelectedNode(null);
     setActiveRoomId(roomId);
     sessionStorage.setItem('term_operator_room', roomId);
     setTypingUsers([]);
 
-    // Inform the socket server that we have transitioned rooms
     if (socketRef.current) {
       socketRef.current.emit('joinRoom', {
         username: anonymousName,
-        roomId
+        roomId,
+        codename: realName,
+        passcode: '0000'
+      });
+    }
+  };
+
+  const handleSelectNode = (username: string) => {
+    const participants = [anonymousName, username].sort();
+    const privateRoomId = `private:${participants[0]}:${participants[1]}`;
+    setSelectedNode(username);
+    setActiveRoomId(privateRoomId);
+    sessionStorage.setItem('term_operator_room', privateRoomId);
+    setTypingUsers([]);
+
+    if (socketRef.current) {
+      socketRef.current.emit('joinPrivateRoom', { targetUsername: username });
+      socketRef.current.emit('joinRoom', {
+        username: anonymousName,
+        roomId: privateRoomId,
+        codename: realName,
+        passcode: '0000'
       });
     }
   };
 
   const handleSendMessage = async (text: string) => {
-    if (socketRef.current?.connected) {
+    if (selectedNode) {
+      // Private 1-to-1 message
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('privateMessage', { to: selectedNode, text });
+      } else {
+        try {
+          const participants = [anonymousName, selectedNode].sort();
+          const roomId = `private:${participants[0]}:${participants[1]}`;
+          await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId, sender: anonymousName, text, type: 'text' })
+          });
+        } catch (err) {
+          console.error('Failed to send private message via HTTP fallback', err);
+        }
+      }
+    } else if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
         sender: anonymousName,
@@ -291,6 +345,10 @@ export default function App() {
   };
 
   const handleSendFile = async (fileName: string, fileSize: number, base64: string) => {
+    if (selectedNode && socketRef.current?.connected) {
+      socketRef.current.emit('privateMessage', { to: selectedNode, text: '', type: 'file', payload: base64, fileName, fileSize });
+      return;
+    }
     try {
       const response = await fetch('/api/upload-files', {
         method: 'POST',
@@ -310,6 +368,10 @@ export default function App() {
   };
 
   const handleSendFolder = async (folderName: string, totalSize: number, files: any[]) => {
+    if (selectedNode && socketRef.current?.connected) {
+      socketRef.current.emit('privateMessage', { to: selectedNode, text: '', type: 'folder', payload: JSON.stringify(files), fileName: folderName, fileSize: totalSize });
+      return;
+    }
     try {
       const response = await fetch('/api/upload-files', {
         method: 'POST',
@@ -317,7 +379,7 @@ export default function App() {
         body: JSON.stringify({
           roomId: activeRoomId,
           sender: anonymousName,
-          files: files // contains elements: { name, size, path, base64 }
+          files: files
         })
       });
       if (!response.ok) {
@@ -329,6 +391,10 @@ export default function App() {
   };
 
   const handleSendVoice = async (base64Audio: string) => {
+    if (selectedNode && socketRef.current?.connected) {
+      socketRef.current.emit('privateMessage', { to: selectedNode, text: 'Voice transmission decoded successfully.', type: 'voice', payload: base64Audio });
+      return;
+    }
     if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
@@ -399,7 +465,10 @@ export default function App() {
           activeRoomId={activeRoomId}
           typingUsers={typingUsers}
           dbMode={dbMode}
+          selectedNode={selectedNode}
+          activeUsers={activeUsers}
           onSelectRoom={handleSelectRoom}
+          onSelectNode={handleSelectNode}
           onSendMessage={handleSendMessage}
           onSendFile={handleSendFile}
           onSendFolder={handleSendFolder}

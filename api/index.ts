@@ -81,7 +81,10 @@ function saveLocalVault(data: any) {
 async function initDatabase() {
   if (isMongoConfigured) {
     try {
-      mongoClient = new MongoClient(mongoUriStr);
+      mongoClient = new MongoClient(mongoUriStr, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      });
       await mongoClient.connect();
       mongoDb = mongoClient.db('terminal_chat');
 

@@ -88,7 +88,10 @@ async function startServer() {
   if (isMongoConfigured) {
     try {
       console.log("Initializing secure connection to MongoDB Atlas cluster...");
-      mongoClient = new MongoClient(mongoUriStr);
+      mongoClient = new MongoClient(mongoUriStr, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      });
       await mongoClient.connect();
       mongoDb = mongoClient.db('terminal_chat');
       console.log("MongoDB Atlas cluster linked successfully.");
@@ -183,14 +186,15 @@ async function startServer() {
     return loadLocalVault().registeredUsers || [];
   }
 
-  async function registerUser(username: string): Promise<void> {
+  async function registerUser(username: string, codename?: string, passcode?: string): Promise<void> {
     const sanitized = String(username).trim();
     if (!sanitized) return;
+    const userRecord = { username: sanitized, codename: codename || sanitized, passcode: passcode || '0000', created: Date.now() };
     if (mongoDb) {
       try {
         const exists = await mongoDb.collection('registered_users').findOne({ username: sanitized });
         if (!exists) {
-          await mongoDb.collection('registered_users').insertOne({ username: sanitized, created: Date.now() });
+          await mongoDb.collection('registered_users').insertOne(userRecord);
         }
         return;
       } catch (err) {
@@ -199,10 +203,27 @@ async function startServer() {
     }
     const vault = loadLocalVault();
     if (!vault.registeredUsers) vault.registeredUsers = [];
-    if (!vault.registeredUsers.includes(sanitized)) {
-      vault.registeredUsers.push(sanitized);
+    const existing = vault.registeredUsers.find((u: any) => (typeof u === 'string' ? u : u.username) === sanitized);
+    if (!existing) {
+      vault.registeredUsers.push(userRecord);
       saveLocalVault(vault);
     }
+  }
+
+  async function getUserNodeInfo(username: string): Promise<{ codename: string; passcode: string; username: string; created: number } | null> {
+    const sanitized = String(username).trim();
+    if (!sanitized) return null;
+    if (mongoDb) {
+      try {
+        const user = await mongoDb.collection('registered_users').findOne({ username: sanitized });
+        if (user) return { codename: user.codename || sanitized, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() };
+      } catch (err) { console.error(err); }
+    }
+    const vault = loadLocalVault();
+    const user = vault.registeredUsers.find((u: any) => (typeof u === 'string' ? u : u.username) === sanitized);
+    if (!user) return null;
+    if (typeof user === 'string') return { codename: user, passcode: '0000', username: user, created: Date.now() };
+    return { codename: user.codename || user.username, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() };
   }
 
   async function deleteUser(username: string): Promise<void> {
@@ -347,14 +368,27 @@ async function startServer() {
   }
 
   // Socket.io Connection & Activity State
-  const activeSockets = new Map<string, { username: string; roomId: string; isTyping: boolean }>();
+  const activeSockets = new Map<string, { username: string; roomId: string; isTyping: boolean; connectedAt: number }>();
+
+  function broadcastActiveUsers() {
+    const users: Array<{ username: string; connectedAt: number }> = [];
+    const seen = new Set<string>();
+    activeSockets.forEach((state) => {
+      if (!seen.has(state.username)) {
+        seen.add(state.username);
+        users.push({ username: state.username, connectedAt: state.connectedAt });
+      }
+    });
+    io.emit('activeUsers', users);
+  }
 
   io.on('connection', (socket) => {
     console.log(`Socket client joined terminal network: ${socket.id}`);
 
-    socket.on('joinRoom', async ({ username, roomId }) => {
+    socket.on('joinRoom', async ({ username, roomId, codename, passcode }) => {
       const sanitizedRoomId = idSanitize(roomId);
       const sanitizedUsername = String(username).trim();
+      const sanitizedCodename = codename ? String(codename).trim() : sanitizedUsername;
 
       const blockedList = await getBlockedUsers();
       if (blockedList.includes(sanitizedUsername)) {
@@ -362,13 +396,14 @@ async function startServer() {
         return;
       }
 
-      await registerUser(sanitizedUsername);
+      await registerUser(sanitizedUsername, sanitizedCodename, passcode);
 
       socket.join(sanitizedRoomId);
       activeSockets.set(socket.id, {
         username: sanitizedUsername,
         roomId: sanitizedRoomId,
-        isTyping: false
+        isTyping: false,
+        connectedAt: Date.now()
       });
 
       console.log(`User [${sanitizedUsername}] joined terminal terminal room: ${sanitizedRoomId}`);
@@ -389,6 +424,7 @@ async function startServer() {
 
       // Emit updated lists
       sendRoomTypingStatus(sanitizedRoomId);
+      broadcastActiveUsers();
     });
 
     socket.on('sendMessage', async (msgData: { roomId: string; sender: string; text: string; type: any; payload?: string; fileName?: string; fileSize?: number; filePath?: string }) => {
@@ -425,6 +461,65 @@ async function startServer() {
       }
     });
 
+    // Private 1-to-1 messaging
+    socket.on('joinPrivateRoom', ({ targetUsername }) => {
+      const senderState = activeSockets.get(socket.id);
+      if (!senderState) return;
+      const participants = [senderState.username, targetUsername].sort();
+      const privateRoomId = `private:${participants[0]}:${participants[1]}`;
+      socket.join(privateRoomId);
+
+      // Also add the target's sockets to this private room if connected
+      activeSockets.forEach((state, sid) => {
+        if (state.username === targetUsername) {
+          const targetSocket = io.sockets.sockets.get(sid);
+          if (targetSocket) {
+            targetSocket.join(privateRoomId);
+            targetSocket.emit('privateRoomJoined', { roomId: privateRoomId, from: senderState.username });
+          }
+        }
+      });
+    });
+
+    socket.on('privateMessage', async ({ to, text, type, payload, fileName, fileSize }) => {
+      const senderState = activeSockets.get(socket.id);
+      if (!senderState) return;
+      const sender = senderState.username;
+      const blockedList = await getBlockedUsers();
+      if (blockedList.includes(sender)) {
+        socket.emit('userBlockedState', { isBlocked: true, username: sender });
+        return;
+      }
+
+      const participants = [sender, to].sort();
+      const privateRoomId = `private:${participants[0]}:${participants[1]}`;
+
+      const newMsg: ChatMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        roomId: privateRoomId,
+        sender,
+        text: String(text || ''),
+        type: type || 'text',
+        timestamp: Date.now(),
+        payload,
+        fileName,
+        fileSize
+      };
+
+      await addMessage(newMsg);
+      socket.emit('message', newMsg);
+
+      activeSockets.forEach((state, sid) => {
+        if (state.username === to) {
+          const targetSocket = io.sockets.sockets.get(sid);
+          if (targetSocket) {
+            targetSocket.emit('message', newMsg);
+            targetSocket.join(privateRoomId);
+          }
+        }
+      });
+    });
+
     socket.on('typing', async ({ isTyping }) => {
       const state = activeSockets.get(socket.id);
       if (state) {
@@ -457,6 +552,7 @@ async function startServer() {
         io.to(roomId).emit('message', systemExitMsg);
 
         sendRoomTypingStatus(roomId);
+        broadcastActiveUsers();
       }
     });
   });
@@ -626,6 +722,30 @@ async function startServer() {
       console.error(e);
       res.status(500).json({ error: e.message });
     }
+  });
+
+  // GET User Node Info (codename, passcode)
+  app.get('/api/users/:username/info', async (req, res) => {
+    try {
+      const info = await getUserNodeInfo(req.params.username);
+      if (!info) return res.status(404).json({ error: 'Node not found' });
+      res.json(info);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET Active connected users
+  app.get('/api/active-users', async (req, res) => {
+    const users: Array<{ username: string; connectedAt: number }> = [];
+    const seen = new Set<string>();
+    activeSockets.forEach((state) => {
+      if (!seen.has(state.username)) {
+        seen.add(state.username);
+        users.push({ username: state.username, connectedAt: state.connectedAt });
+      }
+    });
+    res.json(users);
   });
 
   // GET Registered, Active, and Blocked Users List

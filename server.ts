@@ -542,6 +542,31 @@ async function startServer() {
     }
   });
 
+  // POST send message via HTTP (fallback when WebSocket unavailable, e.g. Vercel serverless)
+  app.post('/api/messages', express.json({ limit: '10mb' }), async (req, res) => {
+    try {
+      const { roomId, sender, text, type, payload, fileName, fileSize, filePath } = req.body;
+      if (!roomId || !sender) {
+        return res.status(400).json({ error: 'Missing required fields: roomId, sender' });
+      }
+      const sanitizedRoomId = idSanitize(roomId);
+      const newMsg: ChatMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        roomId: sanitizedRoomId,
+        sender: String(sender).trim(),
+        text: String(text || ''),
+        type: type || 'text',
+        timestamp: Date.now(),
+        payload, fileName, fileSize, filePath
+      };
+      await addMessage(newMsg);
+      io.to(sanitizedRoomId).emit('message', newMsg);
+      res.json(newMsg);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // POST upload files/folders via body Base64
   app.post('/api/upload-files', express.json({ limit: '100mb' }), async (req, res) => {
     try {
@@ -691,7 +716,12 @@ async function startServer() {
   // --- STATIC AND VITE SERVER BINDING ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        watch: {
+          ignored: ['**/data_vault.json'],
+        },
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

@@ -1,0 +1,1239 @@
+{
+  "rooms": [
+    {
+      "id": "general-shell",
+      "name": "SECURE_GENERAL_SHELL",
+      "created": 1780065446481,
+      "active": true
+    },
+    {
+      "id": "netsec-comms",
+      "name": "NETSEC_OPERATIONAL_COMMS",
+      "created": 1780065446481,
+      "active": true
+    }
+  ],
+  "messages": [
+    {
+      "id": "init-msg-1",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "Terminal initialized. Protocol secure. Monochromatic chat room is operational.",
+      "type": "text",
+      "timestamp": 1780065446481
+    },
+    {
+      "id": "sys-1780065916446-16ei",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065916446
+    },
+    {
+      "id": "sys-1780065916844-3g2x",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065916844
+    },
+    {
+      "id": "sys-1780065917850-8gx3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065917850
+    },
+    {
+      "id": "sys-1780065917994-ubdd",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065917994
+    },
+    {
+      "id": "sys-1780065918589-r85j",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065918589
+    },
+    {
+      "id": "sys-1780065918727-ox48",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065918728
+    },
+    {
+      "id": "sys-1780065918966-srme",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065918967
+    },
+    {
+      "id": "sys-1780065920709-wpnt",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065920709
+    },
+    {
+      "id": "sys-1780065921196-unhl",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065921196
+    },
+    {
+      "id": "sys-1780065921532-95ag",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065921532
+    },
+    {
+      "id": "sys-1780065922221-qful",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065922221
+    },
+    {
+      "id": "sys-1780065922468-psnc",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065922468
+    },
+    {
+      "id": "sys-1780065923008-w62l",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065923009
+    },
+    {
+      "id": "sys-1780065923698-54y6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065923698
+    },
+    {
+      "id": "sys-1780065924869-yjbj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065924869
+    },
+    {
+      "id": "sys-1780065925192-t80k",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065925192
+    },
+    {
+      "id": "sys-1780065926361-hnmk",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065926361
+    },
+    {
+      "id": "sys-1780065926853-7f58",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065926853
+    },
+    {
+      "id": "sys-1780065927302-pk3e",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065927302
+    },
+    {
+      "id": "sys-1780065927501-srk3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065927501
+    },
+    {
+      "id": "sys-1780065928449-l59b",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065928449
+    },
+    {
+      "id": "sys-1780065928814-c2gk",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065928814
+    },
+    {
+      "id": "sys-1780065929147-kdh8",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065929147
+    },
+    {
+      "id": "sys-1780065929294-d5m3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065929294
+    },
+    {
+      "id": "sys-1780065929648-9v7v",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065929648
+    },
+    {
+      "id": "sys-1780065929762-1w22",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065929762
+    },
+    {
+      "id": "sys-1780065930068-5n3p",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065930068
+    },
+    {
+      "id": "sys-1780065930177-3r5a",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065930177
+    },
+    {
+      "id": "sys-1780065930513-ehir",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065930513
+    },
+    {
+      "id": "sys-1780065930765-oe2v",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065930765
+    },
+    {
+      "id": "sys-1780065931102-cf7i",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065931102
+    },
+    {
+      "id": "sys-1780065932183-775j",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065932183
+    },
+    {
+      "id": "sys-1780065932458-m4hc",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065932458
+    },
+    {
+      "id": "sys-1780065932932-d2ly",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065932932
+    },
+    {
+      "id": "sys-1780065933592-q3xu",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065933592
+    },
+    {
+      "id": "sys-1780065934000-faqi",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065934000
+    },
+    {
+      "id": "sys-1780065935317-ojw1",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065935317
+    },
+    {
+      "id": "sys-1780065935868-l0ad",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065935868
+    },
+    {
+      "id": "sys-1780065936629-jkjv",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065936629
+    },
+    {
+      "id": "sys-1780065936860-hivo",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065936860
+    },
+    {
+      "id": "sys-1780065937504-vm73",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065937504
+    },
+    {
+      "id": "sys-1780065937821-o7rl",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065937821
+    },
+    {
+      "id": "sys-1780065938522-8opt",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065938522
+    },
+    {
+      "id": "sys-1780065938710-5nx8",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065938710
+    },
+    {
+      "id": "sys-1780065939189-llx3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065939189
+    },
+    {
+      "id": "sys-1780065939370-2qi4",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065939370
+    },
+    {
+      "id": "sys-1780065940406-nb39",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065940406
+    },
+    {
+      "id": "sys-1780065942769-ro9q",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065942769
+    },
+    {
+      "id": "sys-1780065943320-idgu",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065943320
+    },
+    {
+      "id": "sys-1780065943487-rolk",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065943487
+    },
+    {
+      "id": "sys-1780065944051-dlb1",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065944051
+    },
+    {
+      "id": "sys-1780065944158-z2gg",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065944158
+    },
+    {
+      "id": "sys-1780065944808-8iw6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065944808
+    },
+    {
+      "id": "sys-1780065945383-aeq4",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065945383
+    },
+    {
+      "id": "sys-1780065945764-lgn6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065945764
+    },
+    {
+      "id": "sys-1780065945943-6mxd",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065945943
+    },
+    {
+      "id": "sys-1780065946792-615y",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065946792
+    },
+    {
+      "id": "sys-1780065946944-02z2",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065946944
+    },
+    {
+      "id": "sys-1780065947711-zwlw",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065947711
+    },
+    {
+      "id": "sys-1780065947879-qrqn",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065947879
+    },
+    {
+      "id": "sys-1780065948368-5efw",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780065948368
+    },
+    {
+      "id": "sys-1780065948543-we5b",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6B38]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780065948543
+    },
+    {
+      "id": "sys-1780067576508-i205",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067576508
+    },
+    {
+      "id": "sys-1780067577074-ji6b",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067577074
+    },
+    {
+      "id": "sys-1780067577433-ft8k",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067577433
+    },
+    {
+      "id": "sys-1780067577581-z2ve",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067577582
+    },
+    {
+      "id": "sys-1780067577902-u9i7",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067577902
+    },
+    {
+      "id": "sys-1780067578027-6faw",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067578027
+    },
+    {
+      "id": "sys-1780067578420-ly7b",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067578420
+    },
+    {
+      "id": "sys-1780067578616-tl1h",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067578616
+    },
+    {
+      "id": "sys-1780067578988-13gk",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067578988
+    },
+    {
+      "id": "sys-1780067579226-7g4g",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067579226
+    },
+    {
+      "id": "sys-1780067579693-1g2y",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067579693
+    },
+    {
+      "id": "sys-1780067579913-brct",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067579914
+    },
+    {
+      "id": "sys-1780067580277-t0f6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067580277
+    },
+    {
+      "id": "sys-1780067580443-5jx3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067580443
+    },
+    {
+      "id": "sys-1780067580895-omgg",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067580895
+    },
+    {
+      "id": "sys-1780067581050-2d8q",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067581050
+    },
+    {
+      "id": "sys-1780067581422-r8b2",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067581422
+    },
+    {
+      "id": "sys-1780067581627-oykj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067581627
+    },
+    {
+      "id": "sys-1780067582021-f9d7",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067582021
+    },
+    {
+      "id": "sys-1780067582197-fmka",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067582198
+    },
+    {
+      "id": "sys-1780067582660-ecus",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067582660
+    },
+    {
+      "id": "sys-1780067582857-gi6k",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067582857
+    },
+    {
+      "id": "sys-1780067583306-juvm",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067583306
+    },
+    {
+      "id": "sys-1780067583529-b538",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067583529
+    },
+    {
+      "id": "sys-1780067583908-v27g",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067583908
+    },
+    {
+      "id": "sys-1780067584461-jcs5",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067584461
+    },
+    {
+      "id": "sys-1780067584646-907g",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067584646
+    },
+    {
+      "id": "sys-1780067584990-adi9",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067584990
+    },
+    {
+      "id": "sys-1780067585213-zjsy",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067585213
+    },
+    {
+      "id": "sys-1780067585714-f505",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067585714
+    },
+    {
+      "id": "sys-1780067585907-wbi3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067585907
+    },
+    {
+      "id": "sys-1780067586236-vesa",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067586236
+    },
+    {
+      "id": "sys-1780067586386-fp9l",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067586386
+    },
+    {
+      "id": "sys-1780067586732-bz0l",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067586732
+    },
+    {
+      "id": "sys-1780067586924-j9t7",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067586924
+    },
+    {
+      "id": "sys-1780067587229-l618",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067587229
+    },
+    {
+      "id": "sys-1780067587347-9fpl",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067587347
+    },
+    {
+      "id": "sys-1780067587693-rlmj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067587693
+    },
+    {
+      "id": "sys-1780067587842-2bm4",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067587842
+    },
+    {
+      "id": "sys-1780067588139-gvfo",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067588139
+    },
+    {
+      "id": "sys-1780067588269-gxis",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067588269
+    },
+    {
+      "id": "sys-1780067588559-7m3j",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067588559
+    },
+    {
+      "id": "sys-1780067588691-8wrt",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067588691
+    },
+    {
+      "id": "sys-1780067588997-xd1t",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067588997
+    },
+    {
+      "id": "sys-1780067589141-3d5j",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067589141
+    },
+    {
+      "id": "sys-1780067589449-fz14",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067589449
+    },
+    {
+      "id": "sys-1780067589571-3u80",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067589571
+    },
+    {
+      "id": "sys-1780067589877-5jqa",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067589877
+    },
+    {
+      "id": "sys-1780067589990-lq07",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067589990
+    },
+    {
+      "id": "sys-1780067590281-7h2w",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067590281
+    },
+    {
+      "id": "sys-1780067590426-g6jc",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067590426
+    },
+    {
+      "id": "sys-1780067590716-6m7e",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067590716
+    },
+    {
+      "id": "sys-1780067590831-hvnn",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067590831
+    },
+    {
+      "id": "sys-1780067591126-pbuy",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067591126
+    },
+    {
+      "id": "sys-1780067591281-h4ea",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067591281
+    },
+    {
+      "id": "sys-1780067591554-8dvz",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067591554
+    },
+    {
+      "id": "sys-1780067591684-ont6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067591684
+    },
+    {
+      "id": "sys-1780067591957-cb8c",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067591957
+    },
+    {
+      "id": "sys-1780067592088-r2zd",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067592088
+    },
+    {
+      "id": "sys-1780067592388-cgw3",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067592388
+    },
+    {
+      "id": "sys-1780067592777-55t2",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067592777
+    },
+    {
+      "id": "sys-1780067593334-gbpy",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067593334
+    },
+    {
+      "id": "sys-1780067593524-30th",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067593524
+    },
+    {
+      "id": "sys-1780067594024-vehj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067594024
+    },
+    {
+      "id": "sys-1780067594337-9wy5",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067594337
+    },
+    {
+      "id": "sys-1780067594826-pzli",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067594826
+    },
+    {
+      "id": "sys-1780067595031-13zi",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067595031
+    },
+    {
+      "id": "sys-1780067595575-wu9g",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067595575
+    },
+    {
+      "id": "sys-1780067595756-uhj6",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067595756
+    },
+    {
+      "id": "sys-1780067596173-l8dw",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067596173
+    },
+    {
+      "id": "sys-1780067596306-8psj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067596306
+    },
+    {
+      "id": "sys-1780067596701-qdjr",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067596701
+    },
+    {
+      "id": "sys-1780067596848-ofug",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067596848
+    },
+    {
+      "id": "sys-1780067597199-8ezi",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067597199
+    },
+    {
+      "id": "sys-1780067597347-qp1t",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067597347
+    },
+    {
+      "id": "sys-1780067597715-9jun",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067597715
+    },
+    {
+      "id": "sys-1780067597870-mgiy",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067597870
+    },
+    {
+      "id": "sys-1780067598213-1jl7",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067598213
+    },
+    {
+      "id": "sys-1780067598348-e3wt",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067598348
+    },
+    {
+      "id": "sys-1780067598694-x912",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067598694
+    },
+    {
+      "id": "sys-1780067599115-jn7k",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067599115
+    },
+    {
+      "id": "sys-1780067599586-8eoj",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067599586
+    },
+    {
+      "id": "sys-1780067600061-w5ip",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067600061
+    },
+    {
+      "id": "sys-1780067600465-s7d1",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067600465
+    },
+    {
+      "id": "sys-1780067600632-mkb2",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067600632
+    },
+    {
+      "id": "sys-1780067600978-rcxs",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067600978
+    },
+    {
+      "id": "sys-1780067601135-4zxs",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780067601135
+    },
+    {
+      "id": "sys-1780067818908-s7m1",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-6853]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780067818908
+    },
+    {
+      "id": "msg-1780067826999-7cihm8",
+      "roomId": "general-shell",
+      "sender": "deo [NODE-6853]",
+      "text": "hey",
+      "type": "text",
+      "timestamp": 1780067826999
+    }
+  ],
+  "registeredUsers": [
+    "deo [NODE-6B38]",
+    "deo [NODE-6853]"
+  ],
+  "blockedUsers": []
+}

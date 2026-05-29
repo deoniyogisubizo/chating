@@ -269,14 +269,24 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = (text: string) => {
-    if (socketRef.current) {
+  const handleSendMessage = async (text: string) => {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
         sender: anonymousName,
         text,
         type: 'text'
       });
+    } else {
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: activeRoomId, sender: anonymousName, text, type: 'text' })
+        });
+      } catch (err) {
+        console.error('Failed to send message via HTTP fallback', err);
+      }
     }
   };
 
@@ -318,8 +328,8 @@ export default function App() {
     }
   };
 
-  const handleSendVoice = (base64Audio: string) => {
-    if (socketRef.current) {
+  const handleSendVoice = async (base64Audio: string) => {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
         sender: anonymousName,
@@ -327,6 +337,20 @@ export default function App() {
         type: 'voice',
         payload: base64Audio
       });
+    } else {
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: activeRoomId, sender: anonymousName,
+            text: 'Voice transmission decoded successfully.',
+            type: 'voice', payload: base64Audio
+          })
+        });
+      } catch (err) {
+        console.error('Failed to send voice via HTTP fallback', err);
+      }
     }
   };
 

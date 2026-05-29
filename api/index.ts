@@ -382,6 +382,26 @@ app.post('/api/upload-files', async (req, res) => {
   }
 });
 
+app.get('/api/users/:username/info', async (req, res) => {
+  try {
+    const sanitized = String(req.params.username).trim();
+    if (!sanitized) return res.status(400).json({ error: 'Missing username' });
+    if (mongoDb) {
+      try {
+        const user = await mongoDb.collection('registered_users').findOne({ username: sanitized });
+        if (user) return res.json({ codename: user.codename || sanitized, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() });
+      } catch (err) { console.error(err); }
+    }
+    const vault = loadLocalVault();
+    const user = vault.registeredUsers.find((u: any) => (typeof u === 'string' ? u : u.username) === sanitized);
+    if (!user) return res.status(404).json({ error: 'Node not found' });
+    if (typeof user === 'string') return res.json({ codename: user, passcode: '0000', username: user, created: Date.now() });
+    return res.json({ codename: user.codename || user.username, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/users', async (req, res) => {
   try {
     const reg = await getRegisteredUsers();

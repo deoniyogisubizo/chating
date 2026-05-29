@@ -2264,6 +2264,118 @@
       "text": "User [maiden [NODE-A7DE]] connected to stream interface.",
       "type": "text",
       "timestamp": 1780080636749
+    },
+    {
+      "id": "sys-1780081349925-gx85",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081349926
+    },
+    {
+      "id": "sys-1780081351418-pr3e",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [maiden [NODE-A7DE]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081351418
+    },
+    {
+      "id": "sys-1780081351945-z3bq",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-7900]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081351945
+    },
+    {
+      "id": "sys-1780081365078-gj2j",
+      "roomId": "privatemaidenNODE-A7DEmuhireNODE-77C0",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081365079
+    },
+    {
+      "id": "sys-1780081365122-e9dw",
+      "roomId": "privatemaidenNODE-A7DEmuhireNODE-77C0",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780081365122
+    },
+    {
+      "id": "sys-1780081365255-tet5",
+      "roomId": "privatemaidenNODE-A7DEmuhireNODE-77C0",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081365255
+    },
+    {
+      "id": "sys-1780081368954-ym3d",
+      "roomId": "privatemaidenNODE-A7DEmuhireNODE-77C0",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780081368954
+    },
+    {
+      "id": "sys-1780081369087-pfwp",
+      "roomId": "privatedeoNODE-7900muhireNODE-77C0",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081369087
+    },
+    {
+      "id": "msg-1780081375422-osog1k",
+      "roomId": "private:deo [NODE-7900]:muhire [NODE-77C0]",
+      "sender": "muhire [NODE-77C0]",
+      "text": "hello",
+      "type": "text",
+      "timestamp": 1780081375422
+    },
+    {
+      "id": "sys-1780081382329-9hpl",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081382329
+    },
+    {
+      "id": "sys-1780081382375-5mx8",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780081382375
+    },
+    {
+      "id": "sys-1780081382648-tswe",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [muhire [NODE-77C0]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081382648
+    },
+    {
+      "id": "sys-1780081394763-3g3x",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [maiden [NODE-A7DE]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780081394763
+    },
+    {
+      "id": "sys-1780081395440-fg80",
+      "roomId": "netsec-comms",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [maiden [NODE-A7DE]] connected to stream interface.",
+      "type": "text",
+      "timestamp": 1780081395440
     }
   ],
   "registeredUsers": [

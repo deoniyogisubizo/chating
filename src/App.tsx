@@ -129,7 +129,12 @@ export default function App() {
       const response = await fetch(`/api/messages?roomId=${roomId}`);
       if (response.ok) {
         const data: ChatMessage[] = await response.json();
-        setMessages(data);
+        setMessages(prev => {
+          const merged = new Map<string, ChatMessage>();
+          for (const m of prev) merged.set(m.id, m);
+          for (const m of data) if (!merged.has(m.id)) merged.set(m.id, m);
+          return Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp);
+        });
       }
     } catch (err) {
       console.error(`Failed to pull logs synchronization for room ${roomId}`, err);
@@ -315,11 +320,15 @@ export default function App() {
         try {
           const participants = [anonymousName, selectedNode].sort();
           const roomId = `private:${participants[0]}:${participants[1]}`;
-          await fetch('/api/messages', {
+          const response = await fetch('/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomId, sender: anonymousName, text, type: 'text' })
           });
+          if (response.ok) {
+            const newMsg: ChatMessage = await response.json();
+            setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
+          }
         } catch (err) {
           console.error('Failed to send private message via HTTP fallback', err);
         }
@@ -333,11 +342,15 @@ export default function App() {
       });
     } else {
       try {
-        await fetch('/api/messages', {
+        const response = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomId: activeRoomId, sender: anonymousName, text, type: 'text' })
         });
+        if (response.ok) {
+          const newMsg: ChatMessage = await response.json();
+          setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
+        }
       } catch (err) {
         console.error('Failed to send message via HTTP fallback', err);
       }
@@ -359,8 +372,19 @@ export default function App() {
           files: [{ name: fileName, size: fileSize, base64 }]
         })
       });
-      if (!response.ok) {
-        console.error("Payload delivery exception on API gateway.");
+      if (response.ok) {
+        const optimisticMsg: ChatMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          roomId: activeRoomId,
+          sender: anonymousName,
+          text: `Uploaded File: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)`,
+          type: 'file',
+          timestamp: Date.now(),
+          payload: base64,
+          fileName,
+          fileSize
+        };
+        setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
       }
     } catch (err) {
       console.error(err);
@@ -382,8 +406,19 @@ export default function App() {
           files: files
         })
       });
-      if (!response.ok) {
-        console.error("Workspace directory delivery exception on API gateway.");
+      if (response.ok) {
+        const optimisticMsg: ChatMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          roomId: activeRoomId,
+          sender: anonymousName,
+          text: `Uploaded Directory Workspace: [${folderName}/] comprising ${files.length} node structures (${(totalSize / 1024).toFixed(1)} KB)`,
+          type: 'folder',
+          timestamp: Date.now(),
+          payload: JSON.stringify(files.map((f: any) => ({ name: f.name, size: f.size, path: f.path, base64: f.base64 }))),
+          fileName: folderName,
+          fileSize: totalSize
+        };
+        setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
       }
     } catch (err) {
       console.error(err);
@@ -405,7 +440,7 @@ export default function App() {
       });
     } else {
       try {
-        await fetch('/api/messages', {
+        const response = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -414,6 +449,10 @@ export default function App() {
             type: 'voice', payload: base64Audio
           })
         });
+        if (response.ok) {
+          const newMsg: ChatMessage = await response.json();
+          setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
+        }
       } catch (err) {
         console.error('Failed to send voice via HTTP fallback', err);
       }

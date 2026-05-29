@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html, body, #root {
+  background-color: #000000;
+  color: #ffffff;
+  font-family: "JetBrains Mono", monospace;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Custom terminal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cccccc;
+}
+
+/* Custom terminal selections */
+::selection {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Terminal scanline overlays if needed - fully toggleable or optional */
+.terminal-glow {
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.terminal-border-thick {
+  border: 2px solid #ffffff;
+}
+
+.terminal-border-thin {
+  border: 1px solid #ffffff;
+}
+
+/* Smooth typing text animation */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background-color: #ffffff;
+  animation: blink 1s step-end infinite;
+  margin-left: 4px;
+}

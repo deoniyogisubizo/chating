@@ -43,6 +43,7 @@ export default function TerminalConsole({
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [activeMsgMenu, setActiveMsgMenu] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ sender: string; text: string; msgId: string } | null>(null);
+  const typingTimeoutRef = useRef<any>(null);
   const logStreamEndRef = useRef<HTMLDivElement | null>(null);
   const msgMenuRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -69,11 +70,16 @@ export default function TerminalConsole({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
+    onTypingEvent(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => onTypingEvent(false), 1500);
   };
 
   const handleMessageFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
+    onTypingEvent(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     onSendMessage(inputText);
     setInputText('');
     setReplyTo(null);
@@ -393,6 +399,12 @@ export default function TerminalConsole({
             <div ref={logStreamEndRef} />
           </div>
 
+          {typingUsers.length > 0 && (
+            <div className="px-4 py-1 border-t border-[#333] bg-[#0A0A0A] text-[10px] text-gray-500 italic">
+              [!] {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+            </div>
+          )}
+
           <div className="p-4 border-t border-[#333] bg-[#0A0A0A] shrink-0">
             {isBlocked && (
               <div className="mb-2 border border-red-900 bg-red-950/20 text-red-500 p-2 font-bold text-[10px] tracking-wider uppercase text-center animate-pulse">
@@ -420,6 +432,7 @@ export default function TerminalConsole({
                 type="text"
                 value={inputText}
                 onChange={handleInputChange}
+                onBlur={() => { onTypingEvent(false); if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); }}
                 disabled={isBlocked}
                 placeholder={isBlocked ? "ACCESS SUSPENDED" : "Enter message..."}
                 className="bg-transparent border-none outline-none flex-1 text-xs sm:text-sm text-white placeholder-[#2A2A2A] font-bold disabled:opacity-40"

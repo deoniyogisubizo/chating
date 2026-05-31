@@ -307,62 +307,86 @@ export default function App() {
   };
 
   const handleSendFile = async (fileName: string, fileSize: number, base64: string) => {
-    try {
-      const response = await fetch('/api/upload-files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: activeRoomId,
-          sender: anonymousName,
-          files: [{ name: fileName, size: fileSize, base64 }]
-        })
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('sendMessage', {
+        roomId: activeRoomId,
+        sender: anonymousName,
+        text: `Uploaded File: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)`,
+        type: 'file',
+        payload: base64,
+        fileName,
+        fileSize
       });
-      if (response.ok) {
-        const optimisticMsg: ChatMessage = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          roomId: activeRoomId,
-          sender: anonymousName,
-          text: `Uploaded File: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)`,
-          type: 'file',
-          timestamp: Date.now(),
-          payload: base64,
-          fileName,
-          fileSize
-        };
-        setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
+    } else {
+      try {
+        const response = await fetch('/api/upload-files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: activeRoomId,
+            sender: anonymousName,
+            files: [{ name: fileName, size: fileSize, base64 }]
+          })
+        });
+        if (response.ok) {
+          const optimisticMsg: ChatMessage = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            roomId: activeRoomId,
+            sender: anonymousName,
+            text: `Uploaded File: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)`,
+            type: 'file',
+            timestamp: Date.now(),
+            payload: base64,
+            fileName,
+            fileSize
+          };
+          setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
     }
   };
 
   const handleSendFolder = async (folderName: string, totalSize: number, files: any[]) => {
-    try {
-      const response = await fetch('/api/upload-files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: activeRoomId,
-          sender: anonymousName,
-          files: files
-        })
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('sendMessage', {
+        roomId: activeRoomId,
+        sender: anonymousName,
+        text: `Uploaded Directory Workspace: [${folderName}/] comprising ${files.length} node structures (${(totalSize / 1024).toFixed(1)} KB)`,
+        type: 'folder',
+        payload: JSON.stringify(files.map((f: any) => ({ name: f.name, size: f.size, path: f.path, base64: f.base64 }))),
+        fileName: folderName,
+        fileSize: totalSize
       });
-      if (response.ok) {
-        const optimisticMsg: ChatMessage = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          roomId: activeRoomId,
-          sender: anonymousName,
-          text: `Uploaded Directory Workspace: [${folderName}/] comprising ${files.length} node structures (${(totalSize / 1024).toFixed(1)} KB)`,
-          type: 'folder',
-          timestamp: Date.now(),
-          payload: JSON.stringify(files.map((f: any) => ({ name: f.name, size: f.size, path: f.path, base64: f.base64 }))),
-          fileName: folderName,
-          fileSize: totalSize
-        };
-        setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
+    } else {
+      try {
+        const response = await fetch('/api/upload-files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: activeRoomId,
+            sender: anonymousName,
+            files: files
+          })
+        });
+        if (response.ok) {
+          const optimisticMsg: ChatMessage = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            roomId: activeRoomId,
+            sender: anonymousName,
+            text: `Uploaded Directory Workspace: [${folderName}/] comprising ${files.length} node structures (${(totalSize / 1024).toFixed(1)} KB)`,
+            type: 'folder',
+            timestamp: Date.now(),
+            payload: JSON.stringify(files.map((f: any) => ({ name: f.name, size: f.size, path: f.path, base64: f.base64 }))),
+            fileName: folderName,
+            fileSize: totalSize
+          };
+          setMessages(prev => prev.some(m => m.id === optimisticMsg.id) ? prev : [...prev, optimisticMsg]);
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
     }
   };
 

@@ -11,6 +11,8 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import compression from 'compression';
+import crypto from 'crypto';
 import { ChatMessage, ChatRoom } from './src/types';
 
 dotenv.config();
@@ -31,6 +33,7 @@ async function startServer() {
   // Parse payload limits up to 100MB for secure binary-base64 assets (voice, folders, files)
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
+  app.use(compression());
 
   // Dynamic MongoDB Atlas Setup
   let mongoClient: MongoClient | null = null;
@@ -280,12 +283,20 @@ async function startServer() {
     saveLocalVault(vault);
   }
 
-  async function getMessages(roomId: string): Promise<ChatMessage[]> {
+  async function getMessages(roomId: string, sinceId?: string): Promise<ChatMessage[]> {
     if (mongoDb) {
       try {
+        const query: any = { roomId };
+        if (sinceId) {
+          const sinceMsg = await mongoDb.collection('messages').findOne({ id: sinceId });
+          if (sinceMsg) {
+            query.timestamp = { $gt: sinceMsg.timestamp };
+          }
+        }
         const msgs = await mongoDb.collection('messages')
-          .find({ roomId })
+          .find(query)
           .sort({ timestamp: 1 })
+          .limit(500)
           .toArray();
         return msgs.map(m => ({
           id: m.id,
@@ -304,7 +315,14 @@ async function startServer() {
       }
     }
     const vault = loadLocalVault();
-    return vault.messages.filter((m: any) => m.roomId === idSanitize(roomId));
+    let msgs = vault.messages.filter((m: any) => m.roomId === idSanitize(roomId));
+    if (sinceId) {
+      const sinceIdx = msgs.findIndex((m: any) => m.id === sinceId);
+      if (sinceIdx >= 0) {
+        msgs = msgs.slice(sinceIdx + 1);
+      }
+    }
+    return msgs.slice(-500);
   }
 
   async function addMessage(msg: ChatMessage): Promise<void> {
@@ -574,6 +592,7 @@ async function startServer() {
   app.get('/api/rooms', async (req, res) => {
     try {
       const chambers = await getRooms();
+      res.set('Cache-Control', 'no-cache, must-revalidate');
       res.json(chambers);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -625,14 +644,25 @@ async function startServer() {
   });
 
   // GET messages for room (Failsafe Sync endpoint called every 3 seconds by client)
+  // Supports ?since=msgId for incremental fetching and ?limit=N for pagination
   app.get('/api/messages', async (req, res) => {
     try {
-      const { roomId } = req.query;
+      const { roomId, since, limit } = req.query;
       if (!roomId) {
         return res.status(400).json({ error: 'Missing chamber parameters' });
       }
-      const messages = await getMessages(String(roomId));
-      res.json(messages);
+      const messages = await getMessages(String(roomId), since ? String(since) : undefined);
+      const limited = limit ? messages.slice(-Number(limit)) : messages;
+      
+      const etag = crypto.createHash('md5').update(JSON.stringify(limited.map(m => m.id + m.timestamp))).digest('hex');
+      res.set('Cache-Control', 'no-cache, must-revalidate');
+      res.set('ETag', etag);
+      
+      if (req.headers['if-none-match'] === etag) {
+        return res.status(304).end();
+      }
+      
+      res.json(limited);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -847,7 +877,17 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

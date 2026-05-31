@@ -1,22 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Square, Paperclip, FolderUp, Folder, File, Download, X } from 'lucide-react';
+import { Send, Mic, Square, Paperclip, FolderUp, Folder, File, Download } from 'lucide-react';
 import JSZip from 'jszip';
-import { ChatMessage, ChatRoom } from '../types';
+import { ChatMessage } from '../types';
 
 const EMOJIS = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','🤗','🤩','👍','👎','👊','✊','🤛','🤜','👏','🙌','❤️','💔','🔥','💯','🎉','🎊','💀','☠️','✅','❌','❓','❗','💡','📌','🔒','🔓','⭐','🌟','💪','🖕','🤝','🙏','🚀','💀'];
 
 interface TerminalConsoleProps {
   realName: string;
   anonymousName: string;
-  rooms: ChatRoom[];
   messages: ChatMessage[];
-  activeRoomId: string;
   typingUsers: string[];
   dbMode: string;
-  selectedNode: string | null;
   activeUsers: Array<{ username: string; connectedAt: number }>;
-  onSelectRoom: (roomId: string) => void;
-  onSelectNode: (username: string) => void;
   onSendMessage: (text: string) => void;
   onSendFile: (fileName: string, fileSize: number, base64: string) => void;
   onSendFolder: (folderName: string, totalSize: number, files: any[]) => void;
@@ -29,15 +24,10 @@ interface TerminalConsoleProps {
 export default function TerminalConsole({
   realName,
   anonymousName,
-  rooms,
   messages,
-  activeRoomId,
   typingUsers,
   dbMode,
-  selectedNode,
   activeUsers,
-  onSelectRoom,
-  onSelectNode,
   onSendMessage,
   onSendFile,
   onSendFolder,
@@ -51,9 +41,10 @@ export default function TerminalConsole({
   const [recDuration, setRecDuration] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-  const [nodeInfoPopup, setNodeInfoPopup] = useState<{ username: string; connectedAt: number } | null>(null);
-  const [nodeInfoData, setNodeInfoData] = useState<{ codename: string; passcode: string; username: string; created: number } | null>(null);
+  const [activeMsgMenu, setActiveMsgMenu] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ sender: string; text: string; msgId: string } | null>(null);
   const logStreamEndRef = useRef<HTMLDivElement | null>(null);
+  const msgMenuRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const audioIntervalRef = useRef<any>(null);
@@ -67,6 +58,9 @@ export default function TerminalConsole({
     const handleClickOutside = (e: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
         setShowEmojiPicker(false);
+      }
+      if (msgMenuRef.current && !msgMenuRef.current.contains(e.target as Node)) {
+        setActiveMsgMenu(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -82,6 +76,7 @@ export default function TerminalConsole({
     if (!inputText.trim()) return;
     onSendMessage(inputText);
     setInputText('');
+    setReplyTo(null);
   };
 
   const handleEmojiClick = (emoji: string) => {
@@ -93,21 +88,23 @@ export default function TerminalConsole({
     setInputText(text);
   };
 
-  const handleNodeClick = async (user: { username: string; connectedAt: number }) => {
-    setNodeInfoPopup(user);
+  const handleCopyMessage = async (text: string) => {
     try {
-      const res = await fetch(`/api/users/${encodeURIComponent(user.username)}/info`);
-      if (res.ok) {
-        const data = await res.json();
-        setNodeInfoData(data);
-      } else {
-        const codename = user.username.split(' [NODE-')[0];
-        setNodeInfoData({ codename, passcode: '0000', username: user.username, created: user.connectedAt });
-      }
+      await navigator.clipboard.writeText(text);
     } catch {
-      const codename = user.username.split(' [NODE-')[0];
-      setNodeInfoData({ codename, passcode: '0000', username: user.username, created: user.connectedAt });
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     }
+    setActiveMsgMenu(null);
+  };
+
+  const handleReplyMessage = (sender: string, text: string, msgId: string) => {
+    setReplyTo({ sender, text, msgId });
+    setActiveMsgMenu(null);
   };
 
   const handleToggleFolderExpansion = (msgId: string) => {
@@ -133,6 +130,29 @@ export default function TerminalConsole({
     } catch (err) {
       console.error('ZIP creation failed', err);
     }
+  };
+
+  const handleDownloadFile = (msg: ChatMessage) => {
+    if (!msg.payload) return;
+    const base64Data = msg.payload.split(',')[1] || msg.payload;
+    const mimeType = msg.payload.split(',')[0]?.match(/:(.*?);/)?.[1] || 'application/octet-stream';
+    const byteChars = atob(base64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteChars.length; offset += 512) {
+      const slice = byteChars.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      byteArrays.push(new Uint8Array(byteNumbers));
+    }
+    const blob = new Blob(byteArrays, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = msg.fileName || 'download';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,8 +228,6 @@ export default function TerminalConsole({
 
   const formatTime = (ts: number) => new Date(ts).toLocaleTimeString();
 
-  const isGlobalChat = !selectedNode;
-  const chatLabel = isGlobalChat ? 'NETSEC_OPERATIONAL_COMMS' : `PRIVATE: ${selectedNode}`;
   const filteredMessages = messages.filter(msg => msg.sender !== 'SYSTEM_DAEMON');
 
   return (
@@ -218,7 +236,7 @@ export default function TerminalConsole({
       <header className="h-12 border-b border-[#333] flex items-center justify-between px-6 bg-[#0F0F0F] shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 bg-white animate-pulse"></div>
-          <span className="text-xs tracking-widest uppercase font-bold text-white">{chatLabel}</span>
+          <span className="text-xs tracking-widest uppercase font-bold text-white">NETSEC_OPERATIONAL_COMMS</span>
         </div>
         <div className="text-[10px] opacity-40 uppercase tracking-[0.2em] hidden md:block">
           Connection: Established
@@ -234,27 +252,12 @@ export default function TerminalConsole({
           <div className="p-4 border-b border-[#333] bg-[#090909]">
             <div className="text-[10px] opacity-50 mb-0.5">CHANNEL</div>
             <div className="text-xs font-bold text-white tracking-tight truncate max-w-[180px]">
-              {chatLabel}
+              NETSEC_OPERATIONAL_COMMS
             </div>
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-4">
             <div>
-              <div className="text-[10px] opacity-50 mb-3 uppercase tracking-wider font-bold">CHAMBERS</div>
-              <button
-                onClick={() => onSelectRoom('netsec-comms')}
-                className={`w-full text-left text-xs py-2 px-2.5 transition flex items-center justify-between border cursor-pointer ${
-                  isGlobalChat
-                    ? 'bg-white text-black border-white font-bold'
-                    : 'bg-transparent border-[#222] hover:bg-[#111] hover:border-[#444] text-[#B0B0B0]'
-                }`}
-              >
-                <span className="truncate"># NETSEC_OPERATIONAL_COMMS</span>
-                {isGlobalChat && <span className="text-[8px] font-mono">[LIVE]</span>}
-              </button>
-            </div>
-
-            <div className="pt-2">
               <div className="text-[10px] opacity-30 mb-2 uppercase tracking-wider">ACTIVE_NET_NODES</div>
               <div className="space-y-2 text-[11px] font-mono">
                 <div className="flex items-center gap-2 opacity-50">
@@ -263,24 +266,13 @@ export default function TerminalConsole({
                 </div>
                 {activeUsers
                   .filter(u => u.username !== anonymousName)
-                  .map((user) => {
-                    const isPrivate = selectedNode === user.username;
-                    return (
-                      <button
-                        key={user.username}
-                        onClick={() => handleNodeClick(user)}
-                        className={`w-full flex items-center gap-2 text-left cursor-pointer transition px-1 py-1 ${
-                          isPrivate
-                            ? 'bg-white/10 text-white'
-                            : 'text-gray-500 hover:text-gray-300 hover:bg-[#111]'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 ${isPrivate ? 'bg-white' : 'border border-white/50'}`}></span>
-                        <span className="truncate">{user.username}</span>
-                        <span className="text-[8px] opacity-40 ml-auto">{formatTime(user.connectedAt)}</span>
-                      </button>
-                    );
-                  })}
+                  .map((user) => (
+                    <div key={user.username} className="flex items-center gap-2 text-gray-500 px-1 py-1">
+                      <span className="w-1.5 h-1.5 border border-white/50"></span>
+                      <span className="truncate">{user.username}</span>
+                      <span className="text-[8px] opacity-40 ml-auto">{formatTime(user.connectedAt)}</span>
+                    </div>
+                  ))}
                 {activeUsers.filter(u => u.username !== anonymousName).length === 0 && (
                   <div className="text-[10px] opacity-30 italic">No other nodes active</div>
                 )}
@@ -304,29 +296,56 @@ export default function TerminalConsole({
             {filteredMessages.map((msg) => {
               const timestampFormatted = new Date(msg.timestamp).toLocaleTimeString();
               const isFolder = msg.type === 'folder';
+              const displayText = msg.type === 'file' ? `[FILE] ${msg.fileName || msg.text}` : msg.text;
               return (
-                <div key={msg.id} className={isFolder ? '' : 'flex gap-2 items-baseline group cursor-pointer hover:bg-white/[0.03] px-1 rounded'}>
-                  <div
-                    className={isFolder ? '' : 'flex gap-2 items-baseline cursor-pointer hover:bg-white/[0.03] px-1 rounded'}
-                    onClick={() => !isFolder && handleCopyToInput(msg.text)}
-                    title={isFolder ? '' : 'Click to copy text'}
-                  >
-                    {!isFolder && (
-                      <>
-                        <span className="text-[10px] opacity-30 shrink-0">[{timestampFormatted}]</span>
-                        <span className="text-xs font-bold text-white shrink-0">{msg.sender}:</span>
-                        <span className="text-xs text-[#D0D0D0] leading-relaxed">
-                          {msg.type === 'voice' && msg.payload ? (
-                            <audio src={msg.payload} controls className="h-6 inline-block align-middle" />
-                          ) : msg.type === 'file' ? (
-                            <span className="text-gray-400">[FILE] {msg.fileName || msg.text}</span>
-                          ) : (
-                            msg.text
-                          )}
-                        </span>
-                      </>
-                    )}
-                  </div>
+                <div key={msg.id} className={`group flex ${isFolder ? 'flex-col' : 'items-baseline gap-2'} px-1 rounded relative ${replyTo?.msgId === msg.id ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/[0.03]'}`}>
+                  {!isFolder && (
+                    <>
+                      <span className="text-[10px] opacity-30 shrink-0">[{timestampFormatted}]</span>
+                      <span className="text-xs font-bold text-white shrink-0">{msg.sender}:</span>
+                      <span className="text-xs text-[#D0D0D0] leading-relaxed">
+                        {msg.type === 'voice' && msg.payload ? (
+                          <audio src={msg.payload} controls className="h-6 inline-block align-middle" />
+                        ) : msg.type === 'file' ? (
+                          <span className="text-gray-400 inline-flex items-center gap-1.5">
+                            [FILE] {msg.fileName || msg.text}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDownloadFile(msg); }}
+                              className="px-1.5 py-0.5 border border-[#444] text-[9px] hover:bg-white hover:text-black transition cursor-pointer inline-flex items-center gap-0.5"
+                              title="Download file"
+                            >
+                              <Download className="w-2 h-2" /> GET
+                            </button>
+                          </span>
+                        ) : (
+                          msg.text
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setActiveMsgMenu(activeMsgMenu === msg.id ? null : msg.id); }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 px-1 border border-transparent hover:border-[#444] text-gray-500 hover:text-white cursor-pointer text-xs leading-none align-baseline"
+                          title="Message actions"
+                        >
+                          ...
+                        </button>
+                        {activeMsgMenu === msg.id && (
+                          <div ref={msgMenuRef} className="absolute left-0 top-full mt-1 z-50 bg-[#1a1a1a] border border-[#444] min-w-[100px] shadow-xl">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleReplyMessage(msg.sender, displayText, msg.id); }}
+                              className="w-full text-left px-3 py-1.5 text-[10px] text-gray-300 hover:bg-white hover:text-black transition cursor-pointer"
+                            >
+                              REPLY
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleCopyMessage(displayText); }}
+                              className="w-full text-left px-3 py-1.5 text-[10px] text-gray-300 hover:bg-white hover:text-black transition cursor-pointer"
+                            >
+                              COPY
+                            </button>
+                          </div>
+                        )}
+                      </span>
+                    </>
+                  )}
                   {isFolder && (
                     <div className="border border-[#333] bg-[#111] p-2 max-w-md">
                       <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
@@ -378,6 +397,20 @@ export default function TerminalConsole({
             {isBlocked && (
               <div className="mb-2 border border-red-900 bg-red-950/20 text-red-500 p-2 font-bold text-[10px] tracking-wider uppercase text-center animate-pulse">
                 ACCESS SUSPENDED BY ADMIN
+              </div>
+            )}
+
+            {replyTo && (
+              <div className="mb-2 border-l-2 border-white/30 bg-[#111] px-3 py-1.5 flex items-center gap-2 text-[10px]">
+                <span className="text-white font-bold shrink-0">{replyTo.sender}</span>
+                <span className="text-gray-400 truncate flex-1">{replyTo.text}</span>
+                <button
+                  onClick={() => setReplyTo(null)}
+                  className="text-gray-500 hover:text-white transition cursor-pointer shrink-0 px-1"
+                  title="Cancel reply"
+                >
+                  X
+                </button>
               </div>
             )}
 
@@ -468,43 +501,6 @@ export default function TerminalConsole({
         </section>
 
       </div>
-
-      {nodeInfoPopup && nodeInfoData && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center" onClick={() => { setNodeInfoPopup(null); setNodeInfoData(null); }}>
-          <div className="border border-[#444] bg-[#0F0F0F] p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">NODE INTELLIGENCE</span>
-              <button onClick={() => { setNodeInfoPopup(null); setNodeInfoData(null); }} className="text-gray-500 hover:text-white cursor-pointer">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <div className="border-b border-[#222] pb-2">
-                <div className="text-[9px] opacity-40 uppercase tracking-wider mb-0.5">OPERATOR CODENAME</div>
-                <div className="text-white font-bold text-sm">{nodeInfoData.codename}</div>
-              </div>
-              <div className="border-b border-[#222] pb-2">
-                <div className="text-[9px] opacity-40 uppercase tracking-wider mb-0.5">FULL NODE IDENTIFIER</div>
-                <div className="text-white">{nodeInfoData.username}</div>
-              </div>
-              <div className="border-b border-[#222] pb-2">
-                <div className="text-[9px] opacity-40 uppercase tracking-wider mb-0.5">DECRYPTION INTERPASSCODE</div>
-                <div className="text-white tracking-[0.3em] font-bold">{nodeInfoData.passcode}</div>
-              </div>
-              <div className="pb-2">
-                <div className="text-[9px] opacity-40 uppercase tracking-wider mb-0.5">NODE CONNECTED AT</div>
-                <div className="text-white">{new Date(nodeInfoPopup.connectedAt).toLocaleTimeString()}</div>
-              </div>
-            </div>
-            <button
-              onClick={() => { onSelectNode(nodeInfoPopup.username); setNodeInfoPopup(null); setNodeInfoData(null); }}
-              className="w-full mt-6 bg-white text-black hover:bg-black hover:text-white border border-white font-bold py-2.5 px-4 transition uppercase tracking-widest text-[10px] cursor-pointer"
-            >
-              OPEN PRIVATE CHANNEL
-            </button>
-          </div>
-        </div>
-      )}
 
       <footer className="h-6 bg-white text-black flex items-center justify-between px-4 text-[9px] font-bold uppercase tracking-widest shrink-0 select-none">
         <div>NODE_STATUS: {isBlocked ? "SUSPENDED" : "ACTIVE"}</div>

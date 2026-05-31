@@ -28,12 +28,11 @@ export default function App() {
   // Storage fallback mode
   const [dbMode, setDbMode] = useState<'MongoDB Atlas' | 'Local JSON Vault'>('Local JSON Vault');
 
-  // Private chat state
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [activeUsers, setActiveUsers] = useState<Array<{ username: string; connectedAt: number }>>([]);
 
   // Multi-user Socket reference
   const socketRef = useRef<Socket | null>(null);
+  const lastMessageIdRef = useRef<Record<string, string>>({});
 
   // 1. Initial configuration load & route evaluation
   useEffect(() => {
@@ -122,18 +121,28 @@ export default function App() {
     checkServerStatus();
   }, []);
 
-  // 3. Sync Messages for the active room
-  const fetchMessagesForRoom = async (roomId: string) => {
+  // 3. Sync Messages for the active room (incremental: only fetch new messages)
+  const fetchMessagesForRoom = async (roomId: string, forceFull?: boolean) => {
     if (!roomId) return;
     try {
-      const response = await fetch(`/api/messages?roomId=${roomId}`);
+      const lastId = lastMessageIdRef.current[roomId];
+      const url = forceFull || !lastId
+        ? `/api/messages?roomId=${roomId}`
+        : `/api/messages?roomId=${roomId}&since=${encodeURIComponent(lastId)}`;
+      const response = await fetch(url);
+      if (response.status === 304) return; // Not modified
       if (response.ok) {
         const data: ChatMessage[] = await response.json();
+        if (data.length === 0) return;
         setMessages(prev => {
           const merged = new Map<string, ChatMessage>();
           for (const m of prev) merged.set(m.id, m);
           for (const m of data) if (!merged.has(m.id)) merged.set(m.id, m);
-          return Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp);
+          const result = Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp);
+          if (result.length > 0) {
+            lastMessageIdRef.current[roomId] = result[result.length - 1].id;
+          }
+          return result;
         });
       }
     } catch (err) {
@@ -141,9 +150,10 @@ export default function App() {
     }
   };
 
-  // Fetch messages when room active selection shifts
+  // Fetch messages when room active selection shifts (full fetch on room change)
   useEffect(() => {
-    fetchMessagesForRoom(activeRoomId);
+    lastMessageIdRef.current[activeRoomId] = '';
+    fetchMessagesForRoom(activeRoomId, true);
   }, [activeRoomId]);
 
   // 4. HEARTBEAT ACTIVE SYNC (Updates every three seconds to satisfy user prompt requirement)
@@ -180,11 +190,6 @@ export default function App() {
     // Listen for active users list
     socket.on('activeUsers', (users: Array<{ username: string; connectedAt: number }>) => {
       setActiveUsers(users);
-    });
-
-    // Listen for private room invitations from others
-    socket.on('privateRoomJoined', ({ roomId, from }: { roomId: string; from: string }) => {
-      // Refresh active users when someone initiates a private chat
     });
 
     // Handle instant real-time message stream
@@ -276,64 +281,8 @@ export default function App() {
     }
   };
 
-  const handleSelectRoom = (roomId: string) => {
-    setSelectedNode(null);
-    setActiveRoomId(roomId);
-    sessionStorage.setItem('term_operator_room', roomId);
-    setTypingUsers([]);
-
-    if (socketRef.current) {
-      socketRef.current.emit('joinRoom', {
-        username: anonymousName,
-        roomId,
-        codename: realName,
-        passcode: '0000'
-      });
-    }
-  };
-
-  const handleSelectNode = (username: string) => {
-    const participants = [anonymousName, username].sort();
-    const privateRoomId = `private:${participants[0]}:${participants[1]}`;
-    setSelectedNode(username);
-    setActiveRoomId(privateRoomId);
-    sessionStorage.setItem('term_operator_room', privateRoomId);
-    setTypingUsers([]);
-
-    if (socketRef.current) {
-      socketRef.current.emit('joinPrivateRoom', { targetUsername: username });
-      socketRef.current.emit('joinRoom', {
-        username: anonymousName,
-        roomId: privateRoomId,
-        codename: realName,
-        passcode: '0000'
-      });
-    }
-  };
-
   const handleSendMessage = async (text: string) => {
-    if (selectedNode) {
-      // Private 1-to-1 message
-      if (socketRef.current?.connected) {
-        socketRef.current.emit('privateMessage', { to: selectedNode, text });
-      } else {
-        try {
-          const participants = [anonymousName, selectedNode].sort();
-          const roomId = `private:${participants[0]}:${participants[1]}`;
-          const response = await fetch('/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomId, sender: anonymousName, text, type: 'text' })
-          });
-          if (response.ok) {
-            const newMsg: ChatMessage = await response.json();
-            setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
-          }
-        } catch (err) {
-          console.error('Failed to send private message via HTTP fallback', err);
-        }
-      }
-    } else if (socketRef.current?.connected) {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
         sender: anonymousName,
@@ -358,10 +307,6 @@ export default function App() {
   };
 
   const handleSendFile = async (fileName: string, fileSize: number, base64: string) => {
-    if (selectedNode && socketRef.current?.connected) {
-      socketRef.current.emit('privateMessage', { to: selectedNode, text: '', type: 'file', payload: base64, fileName, fileSize });
-      return;
-    }
     try {
       const response = await fetch('/api/upload-files', {
         method: 'POST',
@@ -392,10 +337,6 @@ export default function App() {
   };
 
   const handleSendFolder = async (folderName: string, totalSize: number, files: any[]) => {
-    if (selectedNode && socketRef.current?.connected) {
-      socketRef.current.emit('privateMessage', { to: selectedNode, text: '', type: 'folder', payload: JSON.stringify(files), fileName: folderName, fileSize: totalSize });
-      return;
-    }
     try {
       const response = await fetch('/api/upload-files', {
         method: 'POST',
@@ -426,10 +367,6 @@ export default function App() {
   };
 
   const handleSendVoice = async (base64Audio: string) => {
-    if (selectedNode && socketRef.current?.connected) {
-      socketRef.current.emit('privateMessage', { to: selectedNode, text: 'Voice transmission decoded successfully.', type: 'voice', payload: base64Audio });
-      return;
-    }
     if (socketRef.current?.connected) {
       socketRef.current.emit('sendMessage', {
         roomId: activeRoomId,
@@ -499,15 +436,10 @@ export default function App() {
         <TerminalConsole
           realName={realName}
           anonymousName={anonymousName}
-          rooms={rooms}
           messages={messages}
-          activeRoomId={activeRoomId}
           typingUsers={typingUsers}
           dbMode={dbMode}
-          selectedNode={selectedNode}
           activeUsers={activeUsers}
-          onSelectRoom={handleSelectRoom}
-          onSelectNode={handleSelectNode}
           onSendMessage={handleSendMessage}
           onSendFile={handleSendFile}
           onSendFolder={handleSendFolder}

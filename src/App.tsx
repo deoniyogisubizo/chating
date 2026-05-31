@@ -192,6 +192,22 @@ export default function App() {
       setActiveUsers(users);
     });
 
+    // Receive full chat history on room join
+    socket.on('chatHistory', (history: ChatMessage[]) => {
+      if (history.length > 0) {
+        setMessages(prev => {
+          const merged = new Map<string, ChatMessage>();
+          for (const m of prev) merged.set(m.id, m);
+          for (const m of history) if (!merged.has(m.id)) merged.set(m.id, m);
+          const result = Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp);
+          if (result.length > 0) {
+            lastMessageIdRef.current[history[0].roomId] = result[result.length - 1].id;
+          }
+          return result;
+        });
+      }
+    });
+
     // Handle instant real-time message stream
     socket.on('message', (newMsg: ChatMessage) => {
       if (newMsg.roomId === activeRoomId) {

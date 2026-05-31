@@ -216,7 +216,9 @@ export default function AdminConsole({ onBack, dbMode, activeRooms, totalMessage
 
     try {
       const response = await fetch('/api/admin/reset', {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: adminPasscodeVal })
       });
 
       const data = await response.json();

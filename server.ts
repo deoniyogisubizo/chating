@@ -186,7 +186,8 @@ async function startServer() {
         console.error(err);
       }
     }
-    return loadLocalVault().registeredUsers || [];
+    const users = loadLocalVault().registeredUsers || [];
+    return users.map((u: any) => typeof u === 'string' ? u : u.username);
   }
 
   async function registerUser(username: string, codename?: string, passcode?: string): Promise<void> {
@@ -239,7 +240,7 @@ async function startServer() {
       }
     }
     const vault = loadLocalVault();
-    vault.registeredUsers = (vault.registeredUsers || []).filter((u: string) => u !== username);
+    vault.registeredUsers = (vault.registeredUsers || []).filter((u: any) => (typeof u === 'string' ? u : u.username) !== username);
     saveLocalVault(vault);
   }
 
@@ -439,6 +440,10 @@ async function startServer() {
       // Save logs if we want them saved, otherwise just broadcast
       await addMessage(systemJoinMsg);
       io.to(sanitizedRoomId).emit('message', systemJoinMsg);
+
+      // Send recent chat history to the joining user
+      const recentMessages = await getMessages(sanitizedRoomId);
+      socket.emit('chatHistory', recentMessages);
 
       // Emit updated lists
       sendRoomTypingStatus(sanitizedRoomId);
@@ -853,6 +858,10 @@ async function startServer() {
   // POST Admin Wipeout Command
   app.post('/api/admin/reset', async (req, res) => {
     try {
+      const { passcode } = req.body;
+      if (passcode !== '0000') {
+        return res.status(403).json({ error: 'UNAUTHORIZED: Invalid admin passcode (0000 required)' });
+      }
       console.log("ALERT: Admin requested full clearance / starting a clean chat log.");
       await resetAllChats();
       // Announce wipeout event to all clients to force-reload state

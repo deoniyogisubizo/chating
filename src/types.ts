@@ -14,6 +14,7 @@ export interface ChatMessage {
   fileName?: string; // Optional metadata
   fileSize?: number; // Optional metadata
   filePath?: string; // Optional path for files upload inside a folder (e.g. folder/sub/file.txt)
+  sessionId?: string; // Links message to an admin session
 }
 
 export interface ChatRoom {
@@ -21,6 +22,17 @@ export interface ChatRoom {
   name: string;
   created: number;
   active: boolean;
+}
+
+export interface ChatSession {
+  id: string;
+  name: string;
+  createdBy: string;
+  createdAt: number;
+  closedAt?: number;
+  active: boolean;
+  roomId: string;
+  messageCount: number;
 }
 
 export interface TypingIndicator {

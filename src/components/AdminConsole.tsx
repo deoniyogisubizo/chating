@@ -17,25 +17,93 @@ import {
   UserX, 
   UserCheck, 
   Hash, 
-  Skull 
+  Skull,
+  Play,
+  Square,
+  Clock
 } from 'lucide-react';
-import { ChatRoom } from '../types';
+import { ChatRoom, ChatSession } from '../types';
 
 interface AdminConsoleProps {
   onBack: () => void;
   dbMode: 'MongoDB Atlas' | 'Local JSON Vault';
   activeRooms: ChatRoom[];
   totalMessagesCount: number;
+  activeSession: ChatSession | null;
+  currentAdminName: string;
+  activeRoomId: string;
 }
 
-export default function AdminConsole({ onBack, dbMode, activeRooms, totalMessagesCount }: AdminConsoleProps) {
+export default function AdminConsole({ onBack, dbMode, activeRooms, totalMessagesCount, activeSession, currentAdminName, activeRoomId }: AdminConsoleProps) {
   const [newRoomName, setNewRoomName] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [adminPasscodeVal, setAdminPasscodeVal] = useState('');
   const [isWiping, setIsWiping] = useState(false);
   const [sysLogLines, setSysLogLines] = useState<string[]>([]);
+  const [sessionName, setSessionName] = useState('');
+  const [sessionList, setSessionList] = useState<ChatSession[]>([]);
   
+  const fetchSessions = async () => {
+    try {
+      const response = await fetch(`/api/admin/sessions?roomId=${activeRoomId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSessionList(data.sessions || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sessions:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+    const t = setInterval(fetchSessions, 10000);
+    return () => clearInterval(t);
+  }, [activeRoomId]);
+
+  const handleStartSession = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const name = sessionName.trim() || `Session ${new Date().toLocaleString()}`;
+    try {
+      const response = await fetch('/api/admin/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, roomId: activeRoomId, adminName: currentAdminName })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(`SESSION ERROR: ${data.error || 'Failed to start session'}`);
+        return;
+      }
+      setSuccessMessage(`SESSION STARTED: "${data.name}"`);
+      addSysLog(`Session started: ${data.name}`);
+      setSessionName('');
+      fetchSessions();
+    } catch (err: any) {
+      setErrorMessage(`SESSION ERROR: ${err.message}`);
+    }
+  };
+
+  const handleCloseSession = async (sessionId: string) => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const response = await fetch(`/api/admin/sessions/${sessionId}/close`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(`CLOSE ERROR: ${data.error || 'Failed to close session'}`);
+        return;
+      }
+      setSuccessMessage(`SESSION CLOSED: "${data.name}" (${data.messageCount} messages)`);
+      addSysLog(`Session closed: ${data.name} (${data.messageCount} msgs)`);
+      fetchSessions();
+    } catch (err: any) {
+      setErrorMessage(`CLOSE ERROR: ${err.message}`);
+    }
+  };
+
   // Moderated users state
   const [usersData, setUsersData] = useState<{ registered: string[]; active: string[]; blocked: string[] }>({
     registered: [],
@@ -364,6 +432,94 @@ export default function AdminConsole({ onBack, dbMode, activeRooms, totalMessage
         {/* Right Section: Rooms and Database (col-span-5) */}
         <div className="lg:col-span-5 space-y-4">
           
+          {/* Session Management Module */}
+          <div className="border border-[#333] p-4 bg-[#080808] space-y-4">
+            <h2 className="text-xs uppercase tracking-wider border-b border-[#333] pb-2 flex items-center gap-2 font-bold text-white">
+              <Clock className="w-4 h-4 text-white" />
+              SESSION CONTROL PANEL
+            </h2>
+
+            {activeSession ? (
+              <div className="border border-emerald-900 bg-emerald-950/20 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Play className="w-3 h-3 text-emerald-400 animate-pulse" />
+                    <span className="text-emerald-400 font-bold text-xs">SESSION ACTIVE</span>
+                  </div>
+                  <button
+                    onClick={() => handleCloseSession(activeSession.id)}
+                    className="px-2 py-1 border border-red-900 text-red-500 text-[9px] font-bold uppercase hover:bg-red-950 hover:text-white transition cursor-pointer"
+                  >
+                    <Square className="w-3 h-3 inline mr-1" />END SESSION
+                  </button>
+                </div>
+                <div className="text-[11px] text-gray-300">
+                  <span className="text-gray-500">Name:</span> {activeSession.name}
+                </div>
+                <div className="text-[11px] text-gray-300">
+                  <span className="text-gray-500">Messages:</span> {activeSession.messageCount}
+                </div>
+                <div className="text-[11px] text-gray-300">
+                  <span className="text-gray-500">Started:</span> {new Date(activeSession.createdAt).toLocaleString()}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-[10px] text-gray-500">No active session. Start a new session to isolate chat history.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Session name (optional)"
+                    value={sessionName}
+                    onChange={(e) => setSessionName(e.target.value)}
+                    className="flex-1 bg-[#111] text-white text-xs border border-[#444] p-2.5 focus:border-white focus:outline-none font-bold uppercase"
+                  />
+                  <button
+                    onClick={handleStartSession}
+                    className="bg-white text-black hover:bg-black hover:text-white border border-white font-bold px-3 py-2 text-xs uppercase cursor-pointer transition shrink-0"
+                  >
+                    <Play className="w-3 h-3 inline mr-1" />START
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Recent Sessions List */}
+            {sessionList.length > 0 && (
+              <div className="border border-[#222] bg-[#020202] text-[11px] max-h-[140px] overflow-y-auto">
+                <div className="p-1.5 bg-[#111] border-b border-[#333] text-[9px] font-bold text-gray-400 uppercase tracking-wide">
+                  RECENT SESSIONS ({sessionList.length})
+                </div>
+                {sessionList.slice(0, 10).map((sess) => (
+                  <div key={sess.id} className="flex items-center justify-between p-1.5 hover:bg-[#0c0c0c] transition border-b border-[#222] last:border-0">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        {sess.active ? (
+                          <span className="w-1.5 h-1.5 bg-emerald-500 shrink-0"></span>
+                        ) : (
+                          <span className="w-1.5 h-1.5 bg-gray-600 shrink-0"></span>
+                        )}
+                        <span className="font-bold text-gray-300 truncate text-[10px]">{sess.name}</span>
+                      </div>
+                      <div className="text-[8px] text-gray-500 mt-0.5">
+                        {sess.messageCount} msgs | {new Date(sess.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    {sess.active && (
+                      <button
+                        onClick={() => handleCloseSession(sess.id)}
+                        className="px-1.5 py-0.5 border border-red-900 text-red-500 text-[8px] font-bold uppercase hover:bg-red-950 hover:text-white transition cursor-pointer shrink-0"
+                        title="Close session"
+                      >
+                        END
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Module 2: Secure Groups Creation / Seeding */}
           <div className="border border-[#333] p-4 bg-[#080808] space-y-4">
             <h2 className="text-xs uppercase tracking-wider border-b border-[#333] pb-2 flex items-center gap-2 font-bold text-white">
@@ -439,14 +595,18 @@ export default function AdminConsole({ onBack, dbMode, activeRooms, totalMessage
             PARTITION TELEMETRY STATUS
           </h2>
 
-          <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
             <div className="border border-[#222] p-2 bg-[#050505]">
-              <span className="block text-gray-500 text-[9px] font-bold uppercase">DATABASE PORTAL</span>
-              <span className="font-bold text-white">{dbMode}</span>
+              <span className="block text-gray-500 text-[9px] font-bold uppercase">DATABASE</span>
+              <span className="font-bold text-white text-[10px]">{dbMode}</span>
             </div>
             <div className="border border-[#222] p-2 bg-[#050505]">
-              <span className="block text-gray-500 text-[9px] font-bold uppercase">MESSAGES STORED</span>
-              <span className="font-bold text-white">{totalMessagesCount} PACKETS</span>
+              <span className="block text-gray-500 text-[9px] font-bold uppercase">MESSAGES</span>
+              <span className="font-bold text-white">{totalMessagesCount}</span>
+            </div>
+            <div className="border border-[#222] p-2 bg-[#050505]">
+              <span className="block text-gray-500 text-[9px] font-bold uppercase">SESSIONS</span>
+              <span className="font-bold text-white">{sessionList.length}</span>
             </div>
           </div>
 

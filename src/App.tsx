@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ChatMessage, ChatRoom } from './types';
+import { ChatMessage, ChatRoom, ChatSession } from './types';
 import AccessScreen from './components/AccessScreen';
 import TerminalConsole from './components/TerminalConsole';
 import AdminConsole from './components/AdminConsole';
@@ -15,18 +15,16 @@ export default function App() {
   const [anonymousName, setAnonymousName] = useState<string>('');
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   
-  // Layout routing state: 'login' | 'chat' | 'admin'
   const [currentLayout, setCurrentLayout] = useState<'login' | 'chat' | 'admin'>('login');
   
-  // Active real-time room data
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeRoomId, setActiveRoomId] = useState<string>('general-shell');
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isBlocked, setIsBlocked] = useState<boolean>(false);
   
-  // Storage fallback mode
-  const [dbMode, setDbMode] = useState<'MongoDB Atlas' | 'Local JSON Vault'>('Local JSON Vault');
+  const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
+  const [dbMode] = useState<'MongoDB Atlas'>('MongoDB Atlas');
 
   const [activeUsers, setActiveUsers] = useState<Array<{ username: string; connectedAt: number }>>([]);
 
@@ -99,26 +97,8 @@ export default function App() {
     }
   };
 
-  // Check from env if MONGODB_URI is provided
   useEffect(() => {
     fetchActiveRooms();
-    
-    // Attempt to verify if server is connected to atlas or local
-    // We can infer by doing a quick fetch to server
-    const checkServerStatus = async () => {
-      try {
-        const response = await fetch('/api/rooms');
-        if (response.ok) {
-          // Let's let server communicate if it's utilizing Atlas or JSON.
-          // If the rooms contains general-shell and has MongoDB markers, great.
-          // We can just query or default cleanly:
-          setDbMode(window.location.hostname.includes('localhost') ? 'Local JSON Vault' : 'MongoDB Atlas');
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    checkServerStatus();
   }, []);
 
   // 3. Sync Messages for the active room (incremental: only fetch new messages)
@@ -205,6 +185,19 @@ export default function App() {
           }
           return result;
         });
+      }
+    });
+
+    // Track active session
+    socket.on('sessionStarted', (session: ChatSession) => {
+      if (session.roomId === activeRoomId) {
+        setActiveSession(session);
+      }
+    });
+
+    socket.on('sessionEnded', (session: ChatSession) => {
+      if (session.roomId === activeRoomId) {
+        setActiveSession(null);
       }
     });
 
@@ -465,6 +458,9 @@ export default function App() {
           dbMode={dbMode}
           activeRooms={rooms}
           totalMessagesCount={messages.length}
+          activeSession={activeSession}
+          currentAdminName={realName}
+          activeRoomId={activeRoomId}
         />
       )}
 
@@ -487,6 +483,7 @@ export default function App() {
           onTypingEvent={handleTypingEvent}
           onLoadAdmin={handleNavigateToAdmin}
           isBlocked={isBlocked}
+          activeSession={activeSession}
         />
       )}
     </div>

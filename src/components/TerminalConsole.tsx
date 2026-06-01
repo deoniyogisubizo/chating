@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Square, Paperclip, FolderUp, Folder, File, Download } from 'lucide-react';
+import { Send, Mic, Square, Paperclip, FolderUp, Folder, File, Download, Play } from 'lucide-react';
 import JSZip from 'jszip';
-import { ChatMessage } from '../types';
+import { ChatMessage, ChatSession } from '../types';
 
 const EMOJIS = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','🤗','🤩','👍','👎','👊','✊','🤛','🤜','👏','🙌','❤️','💔','🔥','💯','🎉','🎊','💀','☠️','✅','❌','❓','❗','💡','📌','🔒','🔓','⭐','🌟','💪','🖕','🤝','🙏','🚀','💀'];
 
@@ -19,6 +19,7 @@ interface TerminalConsoleProps {
   onTypingEvent: (isTyping: boolean) => void;
   onLoadAdmin: () => void;
   isBlocked: boolean;
+  activeSession: ChatSession | null;
 }
 
 export default function TerminalConsole({
@@ -34,7 +35,8 @@ export default function TerminalConsole({
   onSendVoice,
   onTypingEvent,
   onLoadAdmin,
-  isBlocked
+  isBlocked,
+  activeSession
 }: TerminalConsoleProps) {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -243,6 +245,11 @@ export default function TerminalConsole({
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 bg-white animate-pulse"></div>
           <span className="text-xs tracking-widest uppercase font-bold text-white">NETSEC_OPERATIONAL_COMMS</span>
+          {activeSession && (
+            <span className="text-[9px] text-emerald-400 border border-emerald-900 px-1.5 py-0.5 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Play className="w-2.5 h-2.5" /> SESSION: {activeSession.name}
+            </span>
+          )}
         </div>
         <div className="text-[10px] opacity-40 uppercase tracking-[0.2em] hidden md:block">
           Connection: Established

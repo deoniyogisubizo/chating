@@ -8,14 +8,17 @@ import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { MongoClient, Db } from 'mongodb';
 import path from 'path';
-import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import compression from 'compression';
 import crypto from 'crypto';
-import { ChatMessage, ChatRoom } from './src/types';
+import { ChatMessage, ChatRoom, ChatSession } from './src/types';
 
 dotenv.config();
+
+const FILES_RETENTION_DAYS = 10;
+const FILES_RETENTION_MS = FILES_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const CACHE_MAX_MESSAGES = 200;
 
 async function startServer() {
   const app = express();
@@ -27,359 +30,426 @@ async function startServer() {
       origin: '*',
       methods: ['GET', 'POST']
     },
-    maxHttpBufferSize: 1e8 // 100MB limit for secure binary payloads
+    maxHttpBufferSize: 1e8
   });
 
-  // Parse payload limits up to 100MB for secure binary-base64 assets (voice, folders, files)
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
   app.use(compression());
 
-  // Dynamic MongoDB Atlas Setup
+  // MongoDB Atlas Setup
   let mongoClient: MongoClient | null = null;
   let mongoDb: Db | null = null;
 
   const mongoUriStr = process.env.MONGODB_URI || '';
   const isMongoConfigured = mongoUriStr && !mongoUriStr.includes('<username>') && mongoUriStr.trim() !== '';
 
-  const LOCAL_VAULT_PATH = path.join(process.cwd(), 'data_vault.json');
+  // In-memory cache for recent messages per room
+  const messageCache = new Map<string, { messages: ChatMessage[], lastFetched: number }>();
 
-  // Load and fallback safely with JSON
-  function loadLocalVault() {
-    if (!fs.existsSync(LOCAL_VAULT_PATH)) {
-      const initial = {
-        rooms: [
-          { id: 'general-shell', name: 'SECURE_GENERAL_SHELL', created: Date.now(), active: true },
-          { id: 'netsec-comms', name: 'NETSEC_OPERATIONAL_COMMS', created: Date.now(), active: true }
-        ],
-        messages: [
-          {
-            id: 'init-msg-1',
-            roomId: 'general-shell',
-            sender: 'SYSTEM_DAEMON',
-            text: 'Terminal initialized. Protocol secure. Monochromatic chat room is operational.',
-            type: 'text',
-            timestamp: Date.now()
-          }
-        ],
-        registeredUsers: [],
-        blockedUsers: []
-      };
-      fs.writeFileSync(LOCAL_VAULT_PATH, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    try {
-      const data = JSON.parse(fs.readFileSync(LOCAL_VAULT_PATH, 'utf-8'));
-      if (!data.registeredUsers) data.registeredUsers = [];
-      if (!data.blockedUsers) data.blockedUsers = [];
-      return data;
-    } catch (e) {
-      console.error("Local vault parse failure, rebuilding vault storage.", e);
-      return { rooms: [], messages: [], registeredUsers: [], blockedUsers: [] };
+  function bustMessageCache(roomId: string) {
+    messageCache.delete(roomId);
+  }
+
+  function updateMessageCache(roomId: string, msg: ChatMessage) {
+    const cached = messageCache.get(roomId);
+    if (cached) {
+      cached.messages.push(msg);
+      if (cached.messages.length > CACHE_MAX_MESSAGES) {
+        cached.messages = cached.messages.slice(-CACHE_MAX_MESSAGES);
+      }
     }
   }
 
-  function saveLocalVault(data: any) {
-    try {
-      fs.writeFileSync(LOCAL_VAULT_PATH, JSON.stringify(data, null, 2));
-    } catch (err) {
-      console.error("Failed to write state into local vault file", err);
-    }
+  // Database initialization - REQUIRED, no fallback
+  if (!isMongoConfigured) {
+    console.error("FATAL: MONGODB_URI is not configured. Set MONGODB_URI in .env or Vercel environment variables.");
+    console.error("Expected format: mongodb+srv://<user>:<pass>@cluster.mongodb.net/");
+    process.exit(1);
   }
 
-  // Database initialization
-  if (isMongoConfigured) {
+  try {
+    console.log("Initializing secure connection to MongoDB Atlas cluster...");
+    mongoClient = new MongoClient(mongoUriStr, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+    });
+    await mongoClient.connect();
+    mongoDb = mongoClient.db('chating');
+    console.log("MongoDB Atlas cluster linked successfully.");
+
+    // Setup TTL indexes for automatic file cleanup (10 days)
     try {
-      console.log("Initializing secure connection to MongoDB Atlas cluster...");
-      mongoClient = new MongoClient(mongoUriStr, {
-        serverSelectionTimeoutMS: 10000,
-        connectTimeoutMS: 10000,
+      await mongoDb.collection('messages').createIndex({ timestamp: 1 }, { expireAfterSeconds: 0 });
+    } catch {
+      // Index may already exist with different options, that's fine
+    }
+
+    // Setup index for room queries
+    await mongoDb.collection('messages').createIndex({ roomId: 1, timestamp: -1 });
+    await mongoDb.collection('messages').createIndex({ sessionId: 1 });
+    await mongoDb.collection('sessions').createIndex({ createdAt: -1 });
+    await mongoDb.collection('sessions').createIndex({ roomId: 1, active: 1 });
+
+    // Bootstrap default rooms if empty
+    const roomsCol = mongoDb.collection('rooms');
+    const count = await roomsCol.countDocuments();
+    if (count === 0) {
+      await roomsCol.insertMany([
+        { id: 'general-shell', name: 'SECURE_GENERAL_SHELL', created: Date.now(), active: true },
+        { id: 'netsec-comms', name: 'NETSEC_OPERATIONAL_COMMS', created: Date.now(), active: true }
+      ]);
+      const messagesCol = mongoDb.collection('messages');
+      await messagesCol.insertOne({
+        id: 'init-msg-1',
+        roomId: 'general-shell',
+        sender: 'SYSTEM_DAEMON',
+        text: 'Terminal initialized in MongoDB Atlas. System status: SECURE. Monochromatic environment online.',
+        type: 'text',
+        timestamp: Date.now()
       });
-      await mongoClient.connect();
-      mongoDb = mongoClient.db('terminal_chat');
-      console.log("MongoDB Atlas cluster linked successfully.");
-
-      // Check if rooms are populated, if not, bootstrap default chambers
-      const roomsCol = mongoDb.collection('rooms');
-      const count = await roomsCol.countDocuments();
-      if (count === 0) {
-        await roomsCol.insertMany([
-          { id: 'general-shell', name: 'SECURE_GENERAL_SHELL', created: Date.now(), active: true },
-          { id: 'netsec-comms', name: 'NETSEC_OPERATIONAL_COMMS', created: Date.now(), active: true }
-        ]);
-        const messagesCol = mongoDb.collection('messages');
-        await messagesCol.insertOne({
-          id: 'init-msg-1',
-          roomId: 'general-shell',
-          sender: 'SYSTEM_DAEMON',
-          text: 'Terminal initialized in MongoDB Atlas. System status: SECURE. Monochromatic environment online.',
-          type: 'text',
-          timestamp: Date.now()
-        });
-        console.log("Bootstrapped default chambers in MongoDB Atlas.");
-      }
-    } catch (e) {
-      console.error("CRITICAL: MongoDB Atlas connection failed. Falling back to secure local data vault.", e);
-      mongoClient = null;
-      mongoDb = null;
-      loadLocalVault();
+      console.log("Bootstrapped default chambers in MongoDB Atlas.");
     }
-  } else {
-    console.log("MongoDB Atlas URI not configured or using placeholder. Activating local secure json-vault mode.");
-    loadLocalVault();
+  } catch (e) {
+    console.error("FATAL: MongoDB Atlas connection failed. Database is required.", e);
+    process.exit(1);
   }
 
-  // Database Accessors with fallback capability
-  async function getRooms(): Promise<ChatRoom[]> {
-    if (mongoDb) {
-      try {
-        const rooms = await mongoDb.collection('rooms').find().toArray();
-        return rooms.map(r => ({
-          id: r.id,
-          name: r.name,
-          created: r.created || Date.now(),
-          active: r.active !== false
-        }));
-      } catch (err) {
-        console.error("Read rooms failed on MongoDB. Falling back onto JSON store.", err);
+  // Get the active session for a room (the one not closed)
+  async function getActiveSession(roomId: string): Promise<ChatSession | null> {
+    if (!mongoDb) return null;
+    const session = await mongoDb.collection('sessions').findOne({ roomId, active: true });
+    if (!session) return null;
+    return {
+      id: session.id,
+      name: session.name,
+      createdBy: session.createdBy,
+      createdAt: session.createdAt,
+      closedAt: session.closedAt,
+      active: session.active,
+      roomId: session.roomId,
+      messageCount: session.messageCount || 0
+    };
+  }
+
+  // Clean old file payloads (runs periodically)
+  async function cleanExpiredFilePayloads() {
+    if (!mongoDb) return;
+    const cutoff = Date.now() - FILES_RETENTION_MS;
+    try {
+      const result = await mongoDb.collection('messages').updateMany(
+        {
+          type: { $in: ['file', 'folder', 'voice'] },
+          timestamp: { $lt: cutoff },
+          payload: { $exists: true, $ne: null }
+        },
+        { $set: { payload: null, text: '[FILE_EXPIRED: Payload auto-cleaned after 10 days]' } }
+      );
+      if (result.modifiedCount > 0) {
+        console.log(`Cleaned expired file payloads: ${result.modifiedCount} messages`);
       }
+    } catch (err) {
+      console.error("File cleanup error:", err);
     }
-    return loadLocalVault().rooms;
+  }
+
+  // Run file cleanup on startup and every hour
+  cleanExpiredFilePayloads();
+  setInterval(cleanExpiredFilePayloads, 60 * 60 * 1000);
+
+  // Database Accessors
+  async function getRooms(): Promise<ChatRoom[]> {
+    if (!mongoDb) return [];
+    try {
+      const rooms = await mongoDb.collection('rooms').find().toArray();
+      return rooms.map(r => ({
+        id: r.id,
+        name: r.name,
+        created: r.created || Date.now(),
+        active: r.active !== false
+      }));
+    } catch (err) {
+      console.error("Read rooms failed on MongoDB.", err);
+      return [];
+    }
   }
 
   async function addRoom(room: ChatRoom): Promise<void> {
-    if (mongoDb) {
-      try {
-        await mongoDb.collection('rooms').insertOne(room);
-        return;
-      } catch (err) {
-        console.error("Insert room failed on MongoDB. Falling back onto JSON store.", err);
-      }
-    }
-    const vault = loadLocalVault();
-    vault.rooms.push(room);
-    saveLocalVault(vault);
+    if (!mongoDb) throw new Error("Database not connected");
+    await mongoDb.collection('rooms').insertOne(room);
   }
 
   async function removeRoom(roomId: string): Promise<void> {
-    if (mongoDb) {
-      try {
-        await mongoDb.collection('rooms').deleteOne({ id: roomId });
-        await mongoDb.collection('messages').deleteMany({ roomId });
-        return;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    const vault = loadLocalVault();
-    vault.rooms = vault.rooms.filter((r: any) => r.id !== roomId);
-    vault.messages = vault.messages.filter((m: any) => m.roomId !== roomId);
-    saveLocalVault(vault);
+    if (!mongoDb) return;
+    await mongoDb.collection('rooms').deleteOne({ id: roomId });
+    await mongoDb.collection('messages').deleteMany({ roomId });
   }
 
   async function getRegisteredUsers(): Promise<string[]> {
-    if (mongoDb) {
-      try {
-        const list = await mongoDb.collection('registered_users').find().toArray();
-        return list.map(u => u.username);
-      } catch (err) {
-        console.error(err);
-      }
+    if (!mongoDb) return [];
+    try {
+      const list = await mongoDb.collection('registered_users').find().toArray();
+      return list.map(u => u.username);
+    } catch (err) {
+      console.error(err);
+      return [];
     }
-    const users = loadLocalVault().registeredUsers || [];
-    return users.map((u: any) => typeof u === 'string' ? u : u.username);
   }
 
   async function registerUser(username: string, codename?: string, passcode?: string): Promise<void> {
+    if (!mongoDb) return;
     const sanitized = String(username).trim();
     if (!sanitized) return;
     const userRecord = { username: sanitized, codename: codename || sanitized, passcode: passcode || '0000', created: Date.now() };
-    if (mongoDb) {
-      try {
-        const exists = await mongoDb.collection('registered_users').findOne({ username: sanitized });
-        if (!exists) {
-          await mongoDb.collection('registered_users').insertOne(userRecord);
-        }
-        return;
-      } catch (err) {
-        console.error(err);
+    try {
+      const exists = await mongoDb.collection('registered_users').findOne({ username: sanitized });
+      if (!exists) {
+        await mongoDb.collection('registered_users').insertOne(userRecord);
       }
-    }
-    const vault = loadLocalVault();
-    if (!vault.registeredUsers) vault.registeredUsers = [];
-    const existing = vault.registeredUsers.find((u: any) => (typeof u === 'string' ? u : u.username) === sanitized);
-    if (!existing) {
-      vault.registeredUsers.push(userRecord);
-      saveLocalVault(vault);
+    } catch (err) {
+      console.error(err);
     }
   }
 
   async function getUserNodeInfo(username: string): Promise<{ codename: string; passcode: string; username: string; created: number } | null> {
+    if (!mongoDb) return null;
     const sanitized = String(username).trim();
     if (!sanitized) return null;
-    if (mongoDb) {
-      try {
-        const user = await mongoDb.collection('registered_users').findOne({ username: sanitized });
-        if (user) return { codename: user.codename || sanitized, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() };
-      } catch (err) { console.error(err); }
-    }
-    const vault = loadLocalVault();
-    const user = vault.registeredUsers.find((u: any) => (typeof u === 'string' ? u : u.username) === sanitized);
-    if (!user) return null;
-    if (typeof user === 'string') return { codename: user, passcode: '0000', username: user, created: Date.now() };
-    return { codename: user.codename || user.username, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() };
+    try {
+      const user = await mongoDb.collection('registered_users').findOne({ username: sanitized });
+      if (user) return { codename: user.codename || sanitized, passcode: user.passcode || '0000', username: user.username, created: user.created || Date.now() };
+    } catch (err) { console.error(err); }
+    return null;
   }
 
   async function deleteUser(username: string): Promise<void> {
-    if (mongoDb) {
-      try {
-        await mongoDb.collection('registered_users').deleteOne({ username });
-        return;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    const vault = loadLocalVault();
-    vault.registeredUsers = (vault.registeredUsers || []).filter((u: any) => (typeof u === 'string' ? u : u.username) !== username);
-    saveLocalVault(vault);
+    if (!mongoDb) return;
+    await mongoDb.collection('registered_users').deleteOne({ username });
   }
 
   async function getBlockedUsers(): Promise<string[]> {
-    if (mongoDb) {
-      try {
-        const list = await mongoDb.collection('blocked_users').find().toArray();
-        return list.map(u => u.username);
-      } catch (err) {
-        console.error(err);
-      }
+    if (!mongoDb) return [];
+    try {
+      const list = await mongoDb.collection('blocked_users').find().toArray();
+      return list.map(u => u.username);
+    } catch (err) {
+      console.error(err);
+      return [];
     }
-    return loadLocalVault().blockedUsers || [];
   }
 
   async function blockUser(username: string, block: boolean): Promise<void> {
-    if (mongoDb) {
-      try {
-        if (block) {
-          const exists = await mongoDb.collection('blocked_users').findOne({ username });
-          if (!exists) {
-            await mongoDb.collection('blocked_users').insertOne({ username, timestamp: Date.now() });
-          }
-        } else {
-          await mongoDb.collection('blocked_users').deleteOne({ username });
-        }
-        return;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    const vault = loadLocalVault();
-    if (!vault.blockedUsers) vault.blockedUsers = [];
+    if (!mongoDb) return;
     if (block) {
-      if (!vault.blockedUsers.includes(username)) {
-        vault.blockedUsers.push(username);
+      const exists = await mongoDb.collection('blocked_users').findOne({ username });
+      if (!exists) {
+        await mongoDb.collection('blocked_users').insertOne({ username, timestamp: Date.now() });
       }
     } else {
-      vault.blockedUsers = vault.blockedUsers.filter((u: string) => u !== username);
+      await mongoDb.collection('blocked_users').deleteOne({ username });
     }
-    saveLocalVault(vault);
   }
 
+  // Get messages with cache support
   async function getMessages(roomId: string, sinceId?: string): Promise<ChatMessage[]> {
-    if (mongoDb) {
-      try {
-        const query: any = { roomId };
-        if (sinceId) {
-          const sinceMsg = await mongoDb.collection('messages').findOne({ id: sinceId });
-          if (sinceMsg) {
-            query.timestamp = { $gt: sinceMsg.timestamp };
-          }
+    if (!mongoDb) return [];
+
+    // Check cache first for full reads
+    if (!sinceId) {
+      const cached = messageCache.get(roomId);
+      if (cached && (Date.now() - cached.lastFetched) < 5000) {
+        return cached.messages;
+      }
+    }
+
+    try {
+      const query: any = { roomId };
+      if (sinceId) {
+        const sinceMsg = await mongoDb.collection('messages').findOne({ id: sinceId });
+        if (sinceMsg) {
+          query.timestamp = { $gt: sinceMsg.timestamp };
         }
-        const msgs = await mongoDb.collection('messages')
-          .find(query)
-          .sort({ timestamp: 1 })
-          .limit(500)
-          .toArray();
-        return msgs.map(m => ({
-          id: m.id,
-          roomId: m.roomId,
-          sender: m.sender,
-          text: m.text,
-          type: m.type as any,
-          timestamp: m.timestamp,
-          payload: m.payload,
-          fileName: m.fileName,
-          fileSize: m.fileSize,
-          filePath: m.filePath
-        }));
-      } catch (err) {
-        console.error("Read messages failed on MongoDB. Falling back onto JSON store.", err);
       }
-    }
-    const vault = loadLocalVault();
-    let msgs = vault.messages.filter((m: any) => m.roomId === idSanitize(roomId));
-    if (sinceId) {
-      const sinceIdx = msgs.findIndex((m: any) => m.id === sinceId);
-      if (sinceIdx >= 0) {
-        msgs = msgs.slice(sinceIdx + 1);
+      const msgs = await mongoDb.collection('messages')
+        .find(query)
+        .sort({ timestamp: 1 })
+        .limit(500)
+        .toArray();
+      const mapped = msgs.map(m => ({
+        id: m.id,
+        roomId: m.roomId,
+        sender: m.sender,
+        text: m.text,
+        type: m.type as any,
+        timestamp: m.timestamp,
+        payload: m.payload,
+        fileName: m.fileName,
+        fileSize: m.fileSize,
+        filePath: m.filePath,
+        sessionId: m.sessionId
+      }));
+
+      // Update cache for full reads
+      if (!sinceId) {
+        messageCache.set(roomId, { messages: mapped.slice(-CACHE_MAX_MESSAGES), lastFetched: Date.now() });
       }
+
+      return mapped;
+    } catch (err) {
+      console.error("Read messages failed on MongoDB.", err);
+      return [];
     }
-    return msgs.slice(-500);
   }
 
   async function addMessage(msg: ChatMessage): Promise<void> {
-    if (mongoDb) {
-      try {
-        await mongoDb.collection('messages').insertOne(msg);
-        return;
-      } catch (err) {
-        console.error("Insert message failed on MongoDB. Falling back onto JSON store.", err);
+    if (!mongoDb) throw new Error("Database not connected");
+
+    // Tag message with active session if one exists
+    if (!msg.sessionId) {
+      const activeSession = await getActiveSession(msg.roomId);
+      if (activeSession) {
+        msg.sessionId = activeSession.id;
       }
     }
-    const vault = loadLocalVault();
-    vault.messages.push(msg);
-    saveLocalVault(vault);
+
+    await mongoDb.collection('messages').insertOne(msg);
+    updateMessageCache(msg.roomId, msg);
+
+    // Update session message count
+    if (msg.sessionId) {
+      await mongoDb.collection('sessions').updateOne(
+        { id: msg.sessionId },
+        { $inc: { messageCount: 1 } }
+      );
+    }
+  }
+
+  async function getTotalMessageCount(): Promise<number> {
+    if (!mongoDb) return 0;
+    try {
+      return await mongoDb.collection('messages').countDocuments();
+    } catch {
+      return 0;
+    }
   }
 
   async function resetAllChats(): Promise<void> {
-    if (mongoDb) {
-      try {
-        await mongoDb.collection('messages').deleteMany({});
-        await mongoDb.collection('rooms').deleteMany({});
-        await mongoDb.collection('rooms').insertOne({
-          id: 'general-shell',
-          name: 'SECURE_GENERAL_SHELL',
-          created: Date.now(),
-          active: true
-        });
-        await mongoDb.collection('messages').insertOne({
-          id: 'init-msg-reset',
-          roomId: 'general-shell',
-          sender: 'SYSTEM_DAEMON',
-          text: 'Admin reset triggered. All historical logs deleted. New SECURE terminal session configured.',
-          type: 'text',
-          timestamp: Date.now()
-        });
-        return;
-      } catch (err) {
-        console.error("Delete database trigger failed on MongoDB. Falling back onto JSON store.", err);
-      }
-    }
-    const vault = {
-      rooms: [
-        { id: 'general-shell', name: 'SECURE_GENERAL_SHELL', created: Date.now(), active: true }
-      ],
-      messages: [
-        {
-          id: 'init-msg-reset',
-          roomId: 'general-shell',
-          sender: 'SYSTEM_DAEMON',
-          text: 'Admin reset triggered. All historical logs deleted. New SECURE terminal session configured.',
-          type: 'text',
-          timestamp: Date.now()
-        }
-      ]
+    if (!mongoDb) return;
+    await mongoDb.collection('messages').deleteMany({});
+    await mongoDb.collection('rooms').deleteMany({});
+    await mongoDb.collection('sessions').deleteMany({});
+    await mongoDb.collection('rooms').insertOne({
+      id: 'general-shell',
+      name: 'SECURE_GENERAL_SHELL',
+      created: Date.now(),
+      active: true
+    });
+    await mongoDb.collection('messages').insertOne({
+      id: 'init-msg-reset',
+      roomId: 'general-shell',
+      sender: 'SYSTEM_DAEMON',
+      text: 'Admin reset triggered. All historical logs deleted. New SECURE terminal session configured.',
+      type: 'text',
+      timestamp: Date.now()
+    });
+    messageCache.clear();
+  }
+
+  // --- Session Management ---
+  async function createSession(name: string, createdBy: string, roomId: string): Promise<ChatSession> {
+    if (!mongoDb) throw new Error("Database not connected");
+
+    // Close any existing active session for this room
+    await mongoDb.collection('sessions').updateMany(
+      { roomId, active: true },
+      { $set: { active: false, closedAt: Date.now() } }
+    );
+
+    const session: ChatSession = {
+      id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      name: name.trim() || `Session ${new Date().toLocaleString()}`,
+      createdBy,
+      createdAt: Date.now(),
+      active: true,
+      roomId,
+      messageCount: 0
     };
-    saveLocalVault(vault);
+
+    await mongoDb.collection('sessions').insertOne(session);
+    bustMessageCache(roomId);
+
+    const systemMsg: ChatMessage = {
+      id: `sys-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      roomId,
+      sender: 'SYSTEM_DAEMON',
+      text: `New session started: "${session.name}" by admin [${createdBy}].`,
+      type: 'text',
+      timestamp: Date.now(),
+      sessionId: session.id
+    };
+    await addMessage(systemMsg);
+    io.to(roomId).emit('message', systemMsg);
+    io.to(roomId).emit('sessionStarted', session);
+
+    return session;
+  }
+
+  async function closeSession(sessionId: string): Promise<ChatSession | null> {
+    if (!mongoDb) return null;
+    const session = await mongoDb.collection('sessions').findOne({ id: sessionId });
+    if (!session) return null;
+
+    await mongoDb.collection('sessions').updateOne(
+      { id: sessionId },
+      { $set: { active: false, closedAt: Date.now() } }
+    );
+
+    const closed: ChatSession = {
+      id: session.id,
+      name: session.name,
+      createdBy: session.createdBy,
+      createdAt: session.createdAt,
+      closedAt: Date.now(),
+      active: false,
+      roomId: session.roomId,
+      messageCount: session.messageCount || 0
+    };
+
+    const systemMsg: ChatMessage = {
+      id: `sys-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      roomId: closed.roomId,
+      sender: 'SYSTEM_DAEMON',
+      text: `Session ended: "${closed.name}". ${closed.messageCount} messages logged.`,
+      type: 'text',
+      timestamp: Date.now()
+    };
+    await addMessage(systemMsg);
+    io.to(closed.roomId).emit('message', systemMsg);
+    io.to(closed.roomId).emit('sessionEnded', closed);
+
+    bustMessageCache(closed.roomId);
+    return closed;
+  }
+
+  async function getSessions(roomId?: string, limit = 50): Promise<ChatSession[]> {
+    if (!mongoDb) return [];
+    const query: any = {};
+    if (roomId) query.roomId = roomId;
+    const sessions = await mongoDb.collection('sessions')
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    return sessions.map(s => ({
+      id: s.id,
+      name: s.name,
+      createdBy: s.createdBy,
+      createdAt: s.createdAt,
+      closedAt: s.closedAt,
+      active: s.active,
+      roomId: s.roomId,
+      messageCount: s.messageCount || 0
+    }));
   }
 
   function idSanitize(id: string): string {
@@ -591,9 +661,8 @@ async function startServer() {
     io.to(roomId).emit('typingUpdate', typingUsers);
   }
 
-  // --- REST ENDPOINTS (JSON Interface for failsafe synchronization & payload storage) ---
+  // --- REST ENDPOINTS ---
 
-  // GET Chambers listed
   app.get('/api/rooms', async (req, res) => {
     try {
       const chambers = await getRooms();
@@ -604,7 +673,6 @@ async function startServer() {
     }
   });
 
-  // POST create chamber
   app.post('/api/rooms', express.json(), async (req, res) => {
     try {
       const { name } = req.body;
@@ -628,7 +696,6 @@ async function startServer() {
 
       await addRoom(newRoom);
       
-      // Inject alert
       const createAlert: ChatMessage = {
         id: `sys-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         roomId: id,
@@ -638,18 +705,13 @@ async function startServer() {
         timestamp: Date.now()
       };
       await addMessage(createAlert);
-
-      // Broadcast globally
       io.emit('roomCreated', newRoom);
-
       res.json(newRoom);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  // GET messages for room (Failsafe Sync endpoint called every 3 seconds by client)
-  // Supports ?since=msgId for incremental fetching and ?limit=N for pagination
   app.get('/api/messages', async (req, res) => {
     try {
       const { roomId, since, limit } = req.query;
@@ -673,10 +735,9 @@ async function startServer() {
     }
   });
 
-  // POST send message via HTTP (fallback when WebSocket unavailable, e.g. Vercel serverless)
   app.post('/api/messages', express.json({ limit: '10mb' }), async (req, res) => {
     try {
-      const { roomId, sender, text, type, payload, fileName, fileSize, filePath } = req.body;
+      const { roomId, sender, text, type, payload, fileName, fileSize, filePath, sessionId } = req.body;
       if (!roomId || !sender) {
         return res.status(400).json({ error: 'Missing required fields: roomId, sender' });
       }
@@ -688,7 +749,7 @@ async function startServer() {
         text: String(text || ''),
         type: type || 'text',
         timestamp: Date.now(),
-        payload, fileName, fileSize, filePath
+        payload, fileName, fileSize, filePath, sessionId
       };
       await addMessage(newMsg);
       io.to(sanitizedRoomId).emit('message', newMsg);
@@ -698,10 +759,9 @@ async function startServer() {
     }
   });
 
-  // POST upload files/folders via body Base64
   app.post('/api/upload-files', express.json({ limit: '100mb' }), async (req, res) => {
     try {
-      const { roomId, sender, files } = req.body;
+      const { roomId, sender, files, sessionId } = req.body;
       if (!roomId || !sender || !files || !Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ error: 'Invalid payload files structure' });
       }
@@ -709,7 +769,6 @@ async function startServer() {
       const sanitizedRoomId = idSanitize(roomId);
 
       if (files.length === 1 && !files[0].path) {
-        // Single File Upload
         const file = files[0];
         const newMsg: ChatMessage = {
           id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -720,21 +779,17 @@ async function startServer() {
           timestamp: Date.now(),
           payload: file.base64,
           fileName: file.name,
-          fileSize: file.size
+          fileSize: file.size,
+          sessionId
         };
         await addMessage(newMsg);
         io.to(sanitizedRoomId).emit('message', newMsg);
       } else {
-        // Folder Upload
-        // We pack all file structural details into 'payload' as stringified JSON detail containing files base64 block
         const totalSize = files.reduce((acc, f) => acc + (f.size || 0), 0);
         const folderName = files[0].path ? files[0].path.split('/')[0] : 'UPLOADED_FOLDER';
         
         const folderMetadata = files.map(f => ({
-          name: f.name,
-          size: f.size,
-          path: f.path,
-          base64: f.base64
+          name: f.name, size: f.size, path: f.path, base64: f.base64
         }));
 
         const newMsg: ChatMessage = {
@@ -746,7 +801,8 @@ async function startServer() {
           timestamp: Date.now(),
           payload: JSON.stringify(folderMetadata),
           fileName: folderName,
-          fileSize: totalSize
+          fileSize: totalSize,
+          sessionId
         };
         await addMessage(newMsg);
         io.to(sanitizedRoomId).emit('message', newMsg);
@@ -759,7 +815,6 @@ async function startServer() {
     }
   });
 
-  // GET User Node Info (codename, passcode)
   app.get('/api/users/:username/info', async (req, res) => {
     try {
       const info = await getUserNodeInfo(req.params.username);
@@ -770,7 +825,6 @@ async function startServer() {
     }
   });
 
-  // GET Active connected users
   app.get('/api/active-users', async (req, res) => {
     const users: Array<{ username: string; connectedAt: number }> = [];
     const seen = new Set<string>();
@@ -783,7 +837,6 @@ async function startServer() {
     res.json(users);
   });
 
-  // GET Registered, Active, and Blocked Users List
   app.get('/api/admin/users', async (req, res) => {
     try {
       const reg = await getRegisteredUsers();
@@ -794,17 +847,12 @@ async function startServer() {
           active.push(client.username);
         }
       });
-      res.json({
-        registered: reg,
-        active,
-        blocked
-      });
+      res.json({ registered: reg, active, blocked });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // POST Block/Suspend User Node
   app.post('/api/admin/users/block', express.json(), async (req, res) => {
     try {
       const { username, block } = req.body;
@@ -813,8 +861,6 @@ async function startServer() {
       }
       const sUserName = String(username).trim();
       await blockUser(sUserName, !!block);
-
-      // notify socket net
       io.emit('userModerated', { username: sUserName, action: block ? 'block' : 'unblock' });
       res.json({ success: true, username: sUserName, blocked: !!block });
     } catch (err: any) {
@@ -822,7 +868,6 @@ async function startServer() {
     }
   });
 
-  // POST Delete/Deregister User Operator Node
   app.post('/api/admin/users/delete', express.json(), async (req, res) => {
     try {
       const { username } = req.body;
@@ -831,8 +876,6 @@ async function startServer() {
       }
       const sUserName = String(username).trim();
       await deleteUser(sUserName);
-
-      // notify socket net to force logout
       io.emit('userModerated', { username: sUserName, action: 'delete' });
       res.json({ success: true, username: sUserName });
     } catch (err: any) {
@@ -840,7 +883,6 @@ async function startServer() {
     }
   });
 
-  // DELETE Secure Chamber Room channel (Groups chatting feature control)
   app.delete('/api/admin/rooms/:id', async (req, res) => {
     try {
       const roomId = req.params.id;
@@ -855,18 +897,63 @@ async function startServer() {
     }
   });
 
-  // POST Admin Wipeout Command
   app.post('/api/admin/reset', async (req, res) => {
     try {
       const { passcode } = req.body;
       if (passcode !== '0000') {
         return res.status(403).json({ error: 'UNAUTHORIZED: Invalid admin passcode (0000 required)' });
       }
-      console.log("ALERT: Admin requested full clearance / starting a clean chat log.");
+      console.log("ALERT: Admin requested full clearance.");
       await resetAllChats();
-      // Announce wipeout event to all clients to force-reload state
       io.emit('databaseWiped', { restart: true });
       res.json({ success: true, message: "LOGS_WIPED_SUCCESSFULLY" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --- Session Management Endpoints ---
+  app.get('/api/admin/sessions', async (req, res) => {
+    try {
+      const { roomId } = req.query;
+      const sessions = await getSessions(roomId ? String(roomId) : undefined);
+      const totalMessages = await getTotalMessageCount();
+      res.json({ sessions, totalMessages });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/admin/sessions', express.json(), async (req, res) => {
+    try {
+      const { name, roomId, adminName } = req.body;
+      if (!name || !roomId || !adminName) {
+        return res.status(400).json({ error: 'Missing required fields: name, roomId, adminName' });
+      }
+      const session = await createSession(name, adminName, roomId);
+      io.emit('sessionStarted', session);
+      res.json(session);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/admin/sessions/:id/close', async (req, res) => {
+    try {
+      const closed = await closeSession(req.params.id);
+      if (!closed) return res.status(404).json({ error: 'Session not found' });
+      res.json(closed);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/admin/stats', async (req, res) => {
+    try {
+      const totalMessages = await getTotalMessageCount();
+      const totalUsers = (await getRegisteredUsers()).length;
+      const totalSessions = (await getSessions()).length;
+      res.json({ totalMessages, totalUsers, totalSessions, dbMode: 'MongoDB Atlas' });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

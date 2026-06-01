@@ -2694,6 +2694,22 @@
       "text": "helo",
       "type": "text",
       "timestamp": 1780225484523
+    },
+    {
+      "id": "sys-1780227538367-mvk8",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [shaima [NODE-81DC]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780227538367
+    },
+    {
+      "id": "sys-1780227551064-eek8",
+      "roomId": "general-shell",
+      "sender": "SYSTEM_DAEMON",
+      "text": "User [deo [NODE-EABF]] disconnected from terminal stream interface.",
+      "type": "text",
+      "timestamp": 1780227551064
     }
   ],
   "registeredUsers": [
